@@ -1,0 +1,177 @@
+Running from PWD: /home/mfsvensson/TFG_reps/Old-img2img-turbo
+Running on host: gpu11
+CUDA devices available:
+Tue Dec 16 22:25:37 2025       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 560.35.03              Driver Version: 560.35.03      CUDA Version: 12.6     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA H100 PCIe               On  |   00000000:21:00.0 Off |                    0 |
+| N/A   33C    P0             54W /  350W |       1MiB /  81559MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Checking if Python file exists:
+We are about to run the python code!
+Launching: ML2_G_B_skip_0.5_canny
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny/eval/fid_1101
+Launching: ML2_G_B_skip_1_canny
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny/eval/fid_1101
+Launching: ML2_G_B_skip_0.5_binary
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary/eval/fid_1101
+Launching: ML2_G_B_skip_1_binary
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary/eval/fid_1101
+Launching: ML2_G_B_skip_0.5_canny_lp015
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_canny_lp015/eval/fid_1101
+Launching: ML2_G_B_skip_1_canny_lp015
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_canny_lp015/eval/fid_1101
+Launching: ML2_G_B_skip_0.5_binary_lp015
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_0.5_binary_lp015/eval/fid_1101
+Launching: ML2_G_B_skip_1_binary_lp015
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/skip_ablation_v2/ML2_G_B_skip_1_binary_lp015/eval/fid_1101

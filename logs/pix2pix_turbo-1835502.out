@@ -1,0 +1,187 @@
+Running from PWD: /home/mfsvensson/TFG_reps/Old-img2img-turbo
+Running on host: gpu21
+CUDA devices available:
+Tue Dec 16 23:23:11 2025       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 560.35.03              Driver Version: 560.35.03      CUDA Version: 12.6     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA H100 PCIe               On  |   00000000:E1:00.0 Off |                    0 |
+| N/A   26C    P0             48W /  350W |       1MiB /  81559MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Checking if Python file exists:
+We are about to run the python code!
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/PairedDatasetSemantic/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_noskip_nocanny/eval/fid_1101
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/PairedDatasetSemantic/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip0.5_canny/eval/fid_1101
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/PairedDatasetSemantic/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_baseline_skip1.0_canny/eval/fid_1101
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/PairedDatasetSemantic/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_0_canny/eval/fid_1101
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/PairedDatasetSemantic/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_1.0_skip_1_canny/eval/fid_1101
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/PairedDatasetSemantic/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_0_canny/eval/fid_1101
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/PairedDatasetSemantic/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_0.5_skip_1_canny/eval/fid_1101
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/PairedDatasetSemantic/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_0_canny/eval/fid_1101
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/PairedDatasetSemantic/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/eval/fid_1
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/eval/fid_101
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/eval/fid_201
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/eval/fid_301
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/eval/fid_401
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/eval/fid_501
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/eval/fid_601
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/eval/fid_701
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/eval/fid_801
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/eval/fid_901
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/eval/fid_1001
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation//myPairedDatasetSemantic_ML2_G_CLIP_3.0_skip_1_canny/eval/fid_1101

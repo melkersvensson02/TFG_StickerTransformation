@@ -1,0 +1,32 @@
+Running from PWD: /home/mfsvensson/TFG_reps/Old-img2img-turbo
+Running on host: gpu10
+CUDA devices available:
+Tue Dec 16 23:38:55 2025       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 560.35.03              Driver Version: 560.35.03      CUDA Version: 12.6     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA H100 PCIe               On  |   00000000:21:00.0 Off |                    0 |
+| N/A   36C    P0             52W /  350W |       1MiB /  81559MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Checking if Python file exists:
+We are about to run the python code!
+Initializing model with random weights
+Setting up [LPIPS] perceptual loss: trunk [vgg], v[0.1], spatial [off]
+Loading model from: /data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/lpips/weights/v0.1/vgg.pth
+[DEBUG] Saving a few samples from dataloaders to: /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs//naked_UNET/debug_dataloader
+Can we find the weights: True
+Found 125 images in the folder /data/upftfg19/mfsvensson/Data_TFG/PairedDatasetSemantic/test_B
+Found 100 images in the folder /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs//naked_UNET/eval/fid_1
