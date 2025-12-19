@@ -101,5 +101,8 @@ if __name__ == "__main__":
 
 
     Naked version:
-    python src/Inference_paired.py --input_image /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/train_A/50.png --prompt "A close-up shot of a skateboard on a colorful graffiti-filled backdrop in an urban setting, capturing the essence of street culture." --model_path /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/myPairedDataset_ML2_G_B/checkpoints/model_model_Fill50k_1001.pkl --output_dir /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/gammaTest/ --gamma 0.0 --nakedModel True --nakedName 'skateboardUrban'
+    python src/inference_paired.py --input_image /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/train_A/50.png --prompt "A close-up shot of a skateboard on a colorful graffiti-filled backdrop in an urban setting, capturing the essence of street culture." --model_path /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/myPairedDataset_ML2_G_B/checkpoints/model_model_Fill50k_1001.pkl --output_dir /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/gammaTest/ --gamma 0.0 --nakedModel True --nakedName 'skateboardUrban'
+
+    Version with default unet loader:
+    python src/inference_paired.py --input_image /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/train_A/50.png --prompt "a blue dog" --model_path /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/myPairedDataset_ML2_G_B/checkpoints/model_model_Fill50k_1001.pkl --output_dir /home/mfsvensson/TFG_reps/Old-img2img-turbo/ --gamma 0.0 --nakedModel True --nakedName 'blue_dog_v2_modified.png' --load_unet_default True
     """

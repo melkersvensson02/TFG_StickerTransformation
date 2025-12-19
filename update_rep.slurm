@@ -3,9 +3,4 @@
 #SBATCH --output=sync_code.out
 #SBATCH --time=00:10:00
 
-rsync -av --progress \
-  --include="*/" \
-  --include="*.py" \
-  --exclude="*" \
-  /home/melke/Documents/TFG_StickerTransformation/ \
-  mfsvensson@cluster:/path/to/remote/project/
+rsync -av --progress -e "ssh -p 2122"   --include="*/"   --include="*.py"   --exclude="*" ./ mfsvensson@pirineus3.csuc.cat:/home/mfsvensson/TFG_reps/Old-img2img-turbo/
