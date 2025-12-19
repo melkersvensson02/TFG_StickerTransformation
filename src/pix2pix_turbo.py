@@ -233,7 +233,8 @@ class Pix2Pix_Turbo(torch.nn.Module):
         vae.to("cuda")
         self.unet, self.vae = unet, vae
         self.vae.decoder.gamma = 1
-        self.timesteps = torch.tensor([999], device="cuda").long()
+        if not use_pipeline_loader:
+            self.timesteps = torch.tensor([999], device="cuda").long()
         self.text_encoder.requires_grad_(False)
 
     def set_eval(self):
@@ -291,17 +292,14 @@ class Pix2Pix_Turbo(torch.nn.Module):
                 device=self.unet.device,
                 dtype=self.unet.dtype,
             )
-            if r == 0.0:
-                t = self.timesteps
-                unet_output = self.unet(unet_input, t, self.timesteps, encoder_hidden_states=caption_enc,).sample
-            else:
-                unet_output = self.unet(unet_input, self.timesteps, encoder_hidden_states=caption_enc,).sample
+            t = self.timesteps
+            latents_for_unet = unet_input
+            if hasattr(self.sched, "scale_model_input"):
+                latents_for_unet = self.sched.scale_model_input(latents_for_unet, t)
+            unet_output = self.unet(latents_for_unet, self.timesteps, encoder_hidden_states=caption_enc,).sample
             self.unet.conv_in.r = None
             # ?? denoising step
-            if r == 0.0:
-                x_denoised = self.sched.step(unet_output, t, unet_input).prev_sample
-            else:
-                x_denoised = self.sched.step(unet_output, self.timesteps, unet_input, return_dict=True).prev_sample
+            x_denoised = self.sched.step(unet_output, self.timesteps, unet_input, return_dict=True).prev_sample
             x_denoised = x_denoised.to(unet_output.dtype)
             # maakes sure to use the correct skip activations
             self.vae.decoder.incoming_skip_acts = self.vae.encoder.current_down_blocks
