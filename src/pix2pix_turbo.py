@@ -14,6 +14,7 @@ from model import make_1step_sched, my_vae_encoder_fwd, my_vae_decoder_fwd
 
 
 class TwinConv(torch.nn.Module):
+    # TwinConv stores two conv layers: a frozen copy of the pretrained one, and a trainable copy (“curr”)
     def __init__(self, convin_pretrained, convin_curr):
         super(TwinConv, self).__init__()
         self.conv_in_pretrained = copy.deepcopy(convin_pretrained)
@@ -21,19 +22,38 @@ class TwinConv(torch.nn.Module):
         self.r = None
 
     def forward(self, x):
+        # gamma will condition the interpolation between the two conv layers
+        # if r = 1 -> use only the pretrained conv
         x1 = self.conv_in_pretrained(x).detach()
         x2 = self.conv_in_curr(x)
         return x1 * (1 - self.r) + x2 * (self.r)
 
 
 class Pix2Pix_Turbo(torch.nn.Module):
-    def __init__(self, pretrained_name=None, pretrained_path=None, ignore_skip=False, skip_weight=1.0,ckpt_folder="checkpoints", lora_rank_unet=8, lora_rank_vae=4):
+    def __init__(self, pretrained_name=None, pretrained_path=None, ignore_skip=False, skip_weight=1.0,ckpt_folder="checkpoints", lora_rank_unet=8, lora_rank_vae=4
+                 ,use_pipeline_loader=False):
         super().__init__()
-        self.tokenizer = AutoTokenizer.from_pretrained("/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo", subfolder="tokenizer", local_files_only=True)
-        self.text_encoder = CLIPTextModel.from_pretrained("/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo", subfolder="text_encoder").cuda()
-        self.sched = make_1step_sched()
+        if use_pipeline_loader:
+            pipe = AutoPipelineForText2Image.from_pretrained(
+                "/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo",
+                torch_dtype=torch.float16,
+                local_files_only=True,
+            ).to("cuda")
 
-        vae = AutoencoderKL.from_pretrained("/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo", subfolder="vae")
+            # Optional: expose internals so the rest of your code can reuse them
+            #self.pipe = pipe
+            self.tokenizer = pipe.tokenizer
+            self.text_encoder = pipe.text_encoder
+            unet = pipe.unet
+            vae = pipe.vae
+            self.sched = pipe.scheduler
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained("/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo", subfolder="tokenizer", local_files_only=True)
+            self.text_encoder = CLIPTextModel.from_pretrained("/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo", subfolder="text_encoder").cuda()
+            self.sched = make_1step_sched()
+            vae = AutoencoderKL.from_pretrained("/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo", subfolder="vae")
+            unet = UNet2DConditionModel.from_pretrained("/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo", subfolder="unet")
+
         vae.encoder.forward = my_vae_encoder_fwd.__get__(vae.encoder, vae.encoder.__class__)
         vae.decoder.forward = my_vae_decoder_fwd.__get__(vae.decoder, vae.decoder.__class__)
         # add the skip connection convs
@@ -43,7 +63,6 @@ class Pix2Pix_Turbo(torch.nn.Module):
         vae.decoder.skip_conv_4 = torch.nn.Conv2d(128, 256, kernel_size=(1, 1), stride=(1, 1), bias=False).cuda()
         vae.decoder.ignore_skip = ignore_skip
         vae.decoder.skip_weight = skip_weight
-        unet = UNet2DConditionModel.from_pretrained("/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo", subfolder="unet")
 
         if pretrained_name == "edge_to_image":
             #url = "/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo/edge_to_image_loras.pkl"
@@ -149,6 +168,7 @@ class Pix2Pix_Turbo(torch.nn.Module):
                 print(f"Downloaded successfully to {outf}")
             p_ckpt = outf
             convin_pretrained = copy.deepcopy(unet.conv_in)
+            # replace unet.conv_in with TwinConv
             unet.conv_in = TwinConv(convin_pretrained, unet.conv_in)
             sd = torch.load(p_ckpt, map_location="cpu")
             unet_lora_config = LoraConfig(r=sd["rank_unet"], init_lora_weights="gaussian", target_modules=sd["unet_lora_target_modules"])
@@ -259,13 +279,18 @@ class Pix2Pix_Turbo(torch.nn.Module):
             encoded_control = self.vae.encode(c_t).latent_dist.sample() * self.vae.config.scaling_factor
             # combine the input and noise
             unet_input = encoded_control * r + noise_map * (1 - r)
+            # very imp to decide r here too for the TwinConv
             self.unet.conv_in.r = r
+            # forward pass (Runs the UNet forward on unet_input at the single timestep)
             unet_output = self.unet(unet_input, self.timesteps, encoder_hidden_states=caption_enc,).sample
             self.unet.conv_in.r = None
+            # ?? denoising step
             x_denoised = self.sched.step(unet_output, self.timesteps, unet_input, return_dict=True).prev_sample
             x_denoised = x_denoised.to(unet_output.dtype)
+            # maakes sure to use the correct skip activations
             self.vae.decoder.incoming_skip_acts = self.vae.encoder.current_down_blocks
             self.vae.decoder.gamma = r
+            # runs the decoder forward
             output_image = (self.vae.decode(x_denoised / self.vae.config.scaling_factor).sample).clamp(-1, 1)
         return output_image
 

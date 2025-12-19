@@ -60,6 +60,9 @@ def parse_args_paired_training(input_args=None):
                     help="If set, binarize conditioning with x < threshold (in [0,1]) instead of Canny.")
     parser.add_argument("--print_pure_model", type=bool, default=False)
 
+    # defualt loader of unet or from rep 
+    parser.add_argument("--load_unet_default", type=bool, default=False)
+
     # training details
     parser.add_argument("--output_dir", required=True)
     parser.add_argument("--cache_dir", default=None,)
