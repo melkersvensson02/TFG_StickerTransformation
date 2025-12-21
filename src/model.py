@@ -6,6 +6,7 @@ from diffusers import DDPMScheduler
 
 def make_1step_sched():
     noise_scheduler_1step = DDPMScheduler.from_pretrained("/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo", subfolder="scheduler")
+    print(f"The type of noise scheduler is: {type(noise_scheduler_1step)}")
     noise_scheduler_1step.set_timesteps(1, device="cuda")
     noise_scheduler_1step.alphas_cumprod = noise_scheduler_1step.alphas_cumprod.cuda()
     return noise_scheduler_1step

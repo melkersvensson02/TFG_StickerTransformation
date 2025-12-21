@@ -5,7 +5,7 @@ from PIL import Image
 import torch
 from torchvision import transforms
 import torchvision.transforms.functional as F
-from pix2pix_turbo import Pix2Pix_Turbo
+from pix2pix_turbo_modified import Pix2Pix_Turbo
 from image_prep import canny_from_pil
 
 if __name__ == "__main__":
@@ -23,6 +23,7 @@ if __name__ == "__main__":
     parser.add_argument('--use_fp16', action='store_true', help='Use Float16 precision for faster inference')
     parser.add_argument('--nakedModel', type=bool, default=False, help='if you want just the original sd-turbo')
     parser.add_argument('--nakedName', type=str, default='', help='to save the output with a different name')
+    parser.add_argument("--load_unet_default", type=bool, default=False)
     args = parser.parse_args()
 
     # only one of model_name and model_path should be provided
@@ -32,7 +33,7 @@ if __name__ == "__main__":
     os.makedirs(args.output_dir, exist_ok=True)
 
     # initialize the model
-    model = Pix2Pix_Turbo(pretrained_name=args.model_name, pretrained_path=args.model_path)
+    model = Pix2Pix_Turbo(pretrained_name=args.model_name, pretrained_path=args.model_path, use_pipeline_loader=args.load_unet_default)
     model.set_eval()
     if args.use_fp16:
         model.half()
@@ -74,9 +75,14 @@ if __name__ == "__main__":
             c_t = F.to_tensor(input_image).unsqueeze(0).cuda()
             if args.use_fp16:
                 c_t = c_t.half()
-            torch.manual_seed(args.seed)
-            B, C, H, W = c_t.shape
-            noise = torch.randn((1, 4, H // 8, W // 8), device=c_t.device)
+            if args.load_unet_default:
+                gen = torch.Generator(device=c_t.device).manual_seed(args.seed)
+                noise = torch.randn((1, 4, 512//8, 512//8), device=c_t.device, generator=gen, dtype=c_t.dtype)
+            else:
+                print("Using manual seed for noise generation")
+                torch.manual_seed(args.seed)
+                B, C, H, W = c_t.shape
+                noise = torch.randn((1, 4, H // 8, W // 8), device=c_t.device)
             output_image = model(c_t, args.prompt, deterministic=args.deterministic, r=args.gamma, noise_map=noise)
             
         output_pil = transforms.ToPILImage()(output_image[0].cpu() * 0.5 + 0.5)
@@ -102,5 +108,8 @@ if __name__ == "__main__":
 
 
     Naked version:
-    python src/Inference_paired.py --input_image /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/train_A/50.png --prompt "A close-up shot of a skateboard on a colorful graffiti-filled backdrop in an urban setting, capturing the essence of street culture." --model_path /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/myPairedDataset_ML2_G_B/checkpoints/model_model_Fill50k_1001.pkl --output_dir /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/gammaTest/ --gamma 0.0 --nakedModel True --nakedName 'skateboardUrban'
+    python src/inference_paired.py --input_image /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/train_A/50.png --prompt "A close-up shot of a skateboard on a colorful graffiti-filled backdrop in an urban setting, capturing the essence of street culture." --model_path /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/myPairedDataset_ML2_G_B/checkpoints/model_model_Fill50k_1001.pkl --output_dir /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/gammaTest/ --gamma 0.0 --nakedModel True --nakedName 'skateboardUrban'
+
+    Version with default unet loader:
+    python src/inference_paired.py --input_image /data/upftfg19/mfsvensson/Data_TFG/myPairedDatasets/train_A/50.png --prompt "a blue dog" --model_path /home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/myPairedDataset_ML2_G_B/checkpoints/model_model_Fill50k_1001.pkl --output_dir /home/mfsvensson/TFG_reps/Old-img2img-turbo/ --gamma 0.0 --nakedModel True --nakedName 'blue_dog_v2_modified.png' --load_unet_default True
     """
