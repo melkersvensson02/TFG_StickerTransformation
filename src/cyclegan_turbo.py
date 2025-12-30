@@ -76,9 +76,11 @@ def initialize_unet(rank, return_lora_module_names=False):
         return unet
 
 
-def initialize_vae(rank=4, return_lora_module_names=False):
+def initialize_vae(rank=4, return_lora_module_names=False, ignore_skip=False, skip_weight=1.0):
     vae = AutoencoderKL.from_pretrained("/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo", subfolder="vae")
     vae.requires_grad_(False)
+    vae.decoder.ignore_skip = ignore_skip
+    vae.decoder.skip_weight = skip_weight
     vae.encoder.forward = my_vae_encoder_fwd.__get__(vae.encoder, vae.encoder.__class__)
     vae.decoder.forward = my_vae_decoder_fwd.__get__(vae.decoder, vae.decoder.__class__)
     vae.requires_grad_(True)
@@ -92,7 +94,6 @@ def initialize_vae(rank=4, return_lora_module_names=False):
     torch.nn.init.constant_(vae.decoder.skip_conv_2.weight, 1e-5)
     torch.nn.init.constant_(vae.decoder.skip_conv_3.weight, 1e-5)
     torch.nn.init.constant_(vae.decoder.skip_conv_4.weight, 1e-5)
-    vae.decoder.ignore_skip = False
     vae.decoder.gamma = 1
     l_vae_target_modules = ["conv1","conv2","conv_in", "conv_shortcut",
         "conv", "conv_out", "skip_conv_1", "skip_conv_2", "skip_conv_3", 

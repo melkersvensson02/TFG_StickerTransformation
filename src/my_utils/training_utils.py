@@ -166,7 +166,8 @@ def parse_args_unpaired_training():
     parser.add_argument("--variant", default=None, type=str)
     parser.add_argument("--lora_rank_unet", default=128, type=int)
     parser.add_argument("--lora_rank_vae", default=4, type=int)
-
+    parser.add_argument("--vae_ignore_skip", default=False, help="Disable VAE encoder->decoder skip connections.")
+    parser.add_argument("--vae_skip_weight", type=float, default=1.0, help="Strength of VAE skip additions (only used if not ignore_skip).")
     # args for validation and logging
     parser.add_argument("--viz_freq", type=int, default=20)
     parser.add_argument("--output_dir", type=str, required=True)

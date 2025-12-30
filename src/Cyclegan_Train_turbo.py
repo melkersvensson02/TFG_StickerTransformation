@@ -43,7 +43,7 @@ def main(args):
     # Initalize the UNet (here we add the LoRA layers as well) need to change path name inside here to local 
     unet, l_modules_unet_encoder, l_modules_unet_decoder, l_modules_unet_others = initialize_unet(args.lora_rank_unet, return_lora_module_names=True)
     # Initalize the VAE (here we add the LoRA layers as well) need to change path name inside here to local
-    vae_a2b, vae_lora_target_modules = initialize_vae(args.lora_rank_vae, return_lora_module_names=True)
+    vae_a2b, vae_lora_target_modules = initialize_vae(args.lora_rank_vae, return_lora_module_names=True, ignore_skip=args.vae_ignore_skip, skip_weight=args.vae_skip_weight)
     write_text(TEXT_FILE, f"Pased UNET and VAE initialization \n")
     weight_dtype = torch.float32
     # Move models to GPU if available 
