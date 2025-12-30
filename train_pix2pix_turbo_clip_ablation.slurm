@@ -122,7 +122,7 @@ LAMBDA_LPIPS=0.0   # keep off unless you explicitly want it
 CANNY_LOW=100
 CANNY_HIGH=200
 
-ROOT_OUT="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation/"
+ROOT_OUT="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation_v2/"
 
 for CLIPW in 1.0 0.5 3.0; do
   for SKIP01 in 0 1; do

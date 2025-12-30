@@ -305,7 +305,7 @@ class Pix2Pix_Turbo(torch.nn.Module):
                 latents = unet_input * self.sched.init_noise_sigma
             else:
                 print("We are in manual mode")
-
+            
             t = self.timesteps
             # This is ONLY the UNet input
             latent_model_input = latents
