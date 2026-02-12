@@ -204,7 +204,15 @@ def parse_args_unpaired_training():
     parser.add_argument("--gradient_checkpointing", action="store_true",
         help="Whether or not to use gradient checkpointing to save memory at the expense of slower backward pass.")
     parser.add_argument("--enable_xformers_memory_efficient_attention", action="store_true", help="Whether or not to use xformers.")
-
+    # Resume Argument
+    parser.add_argument(
+    "--resume_from_checkpoint",
+    type=str,
+    default=None,
+    help="Path to checkpoint file to resume training from",
+    )
+    # precision 
+    parser.add_argument("--mixed_precision", type=str, default=None, choices=["no", "fp16", "bf16"],)
     args = parser.parse_args()
     return args
 

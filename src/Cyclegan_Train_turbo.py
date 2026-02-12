@@ -308,6 +308,12 @@ def main(args):
             logs["disc_b"] = loss_D_B_fake.detach().item() + loss_D_B_real.detach().item()
             logs["idt_a"] = loss_idt_a.detach().item()
             logs["idt_b"] = loss_idt_b.detach().item()
+            del loss_cycle_a, loss_cycle_b
+            del loss_gan_a, loss_gan_b
+            del loss_D_A_fake, loss_D_A_real
+            del loss_D_B_fake, loss_D_B_real
+            del loss_idt_a, loss_idt_b
+            write_text(TEXT_FILE, f"Step {logs}: wrote metrics")
 
             if accelerator.sync_gradients:
                 progress_bar.update(1)
@@ -353,6 +359,7 @@ def main(args):
                         os.makedirs(fid_output_dir, exist_ok=True)
                         l_dino_scores_a2b = []
                         # get val input images from domain a
+                        write_text(TEXT_FILE, f"Number of images to be processed {args.validation_num_images}")
                         for idx, input_img_path in enumerate(tqdm(l_images_src_test)):
                             if idx > args.validation_num_images and args.validation_num_images > 0:
                                 break

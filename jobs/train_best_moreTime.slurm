@@ -44,9 +44,9 @@ LPIPS=0.0
 CANNY_LOW=100
 CANNY_HIGH=200
 
-OUTDIR="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/best_ablation_original_v1/ML2_G_B_skip_0.5_canny_finetuned"
-MAX_STEEPS=5510 # five times more the original 1102
-SKIP_ARGS="--skip_weight 0.5"
+OUTDIR="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/pix2pix_train_longer/ML2_G_B_skip_0.5_canny_finetuned"
+MAX_STEPS=11000 # five times more the original 1102
+SKIP_ARGS="--ignore_skip False --skip_weight 0.5"
 COND_ARGS="--use_canny_conditioning True --canny_low_threshold ${CANNY_LOW} --canny_high_threshold ${CANNY_HIGH}"
 
 accelerate launch src/Train_pix2pix_turbo.py \
@@ -59,9 +59,10 @@ accelerate launch src/Train_pix2pix_turbo.py \
     --enable_xformers_memory_efficient_attention \
     --viz_freq 25 \
     --track_val_fid \
+    --num_training_epochs 15 \
+    --num_samples_eval 50 \
     --mixed_precision="bf16" \
     --num_samples_eval 100 \
-    --data_set_type "modified" \
     --checkpointing_steps 1000 \
     --lambda_clipsim "${LAMBDA_CLIPSIM}" \
     --lambda_lpips "${LPIPS}" \

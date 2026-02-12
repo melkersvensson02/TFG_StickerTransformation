@@ -1,0 +1,94 @@
+/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/transformers/utils/generic.py:441: UserWarning: torch.utils._pytree._register_pytree_node is deprecated. Please use torch.utils._pytree.register_pytree_node instead.
+  _torch_pytree._register_pytree_node(
+/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/transformers/utils/generic.py:309: UserWarning: torch.utils._pytree._register_pytree_node is deprecated. Please use torch.utils._pytree.register_pytree_node instead.
+  _torch_pytree._register_pytree_node(
+The following values were not passed to `accelerate launch` and had defaults used instead:
+	`--num_processes` was set to a value of `1`
+	`--num_machines` was set to a value of `1`
+	`--mixed_precision` was set to a value of `'no'`
+	`--dynamo_backend` was set to a value of `'no'`
+To avoid this warning pass in values for each of the problematic parameters or run `accelerate config`.
+/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/transformers/utils/generic.py:441: UserWarning: torch.utils._pytree._register_pytree_node is deprecated. Please use torch.utils._pytree.register_pytree_node instead.
+  _torch_pytree._register_pytree_node(
+/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/transformers/utils/generic.py:309: UserWarning: torch.utils._pytree._register_pytree_node is deprecated. Please use torch.utils._pytree.register_pytree_node instead.
+  _torch_pytree._register_pytree_node(
+/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/gdown/__init__.py:3: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/diffusers/utils/outputs.py:63: UserWarning: torch.utils._pytree._register_pytree_node is deprecated. Please use torch.utils._pytree.register_pytree_node instead.
+  torch.utils._pytree._register_pytree_node(
+/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/accelerate/accelerator.py:384: UserWarning: `log_with=wandb` was passed but no supported trackers are currently installed.
+  warnings.warn(f"`log_with={log_with}` was passed but no supported trackers are currently installed.")
+Detected kernel version 4.18.0, which is below the recommended minimum of 5.5.0; this can cause the process to hang. It is recommended to upgrade the kernel to the minimum version or higher.
+/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/_compile.py:24: UserWarning: optimizer contains a parameter group with duplicate parameters; in future, this will cause an error; see github.com/pytorch/pytorch/issues/40967 for more information
+  return torch._dynamo.disable(fn, recursive)(*args, **kwargs)
+  0%|          | 0/75 [00:00<?, ?it/s]  1%|▏         | 1/75 [00:00<00:14,  5.14it/s]  5%|▌         | 4/75 [00:00<00:04, 14.27it/s] 11%|█         | 8/75 [00:00<00:03, 20.75it/s] 15%|█▍        | 11/75 [00:00<00:03, 20.23it/s] 19%|█▊        | 14/75 [00:00<00:03, 19.05it/s] 23%|██▎       | 17/75 [00:00<00:02, 21.64it/s] 27%|██▋       | 20/75 [00:00<00:02, 23.19it/s] 33%|███▎      | 25/75 [00:01<00:01, 28.71it/s] 40%|████      | 30/75 [00:01<00:01, 28.63it/s] 44%|████▍     | 33/75 [00:01<00:01, 22.55it/s] 51%|█████     | 38/75 [00:01<00:01, 28.12it/s] 59%|█████▊    | 44/75 [00:01<00:00, 34.48it/s] 65%|██████▌   | 49/75 [00:01<00:00, 38.14it/s] 72%|███████▏  | 54/75 [00:01<00:00, 40.58it/s] 79%|███████▊  | 59/75 [00:02<00:00, 36.83it/s] 84%|████████▍ | 63/75 [00:02<00:00, 33.49it/s] 91%|█████████ | 68/75 [00:02<00:00, 35.03it/s] 97%|█████████▋| 73/75 [00:02<00:00, 36.96it/s]100%|██████████| 75/75 [00:02<00:00, 29.62it/s]
+  0%|          | 0/10 [00:00<?, ?it/s] 10%|█         | 1/10 [00:05<00:46,  5.17s/it] 20%|██        | 2/10 [00:11<00:48,  6.07s/it] 40%|████      | 4/10 [00:11<00:13,  2.30s/it] 60%|██████    | 6/10 [00:12<00:04,  1.24s/it] 80%|████████  | 8/10 [00:12<00:01,  1.31it/s]100%|██████████| 10/10 [00:12<00:00,  1.81it/s]100%|██████████| 10/10 [00:12<00:00,  1.26s/it]
+  0%|          | 0/75 [00:00<?, ?it/s]  3%|▎         | 2/75 [00:00<00:05, 14.04it/s]  5%|▌         | 4/75 [00:00<00:04, 16.94it/s]  9%|▉         | 7/75 [00:00<00:03, 17.28it/s] 12%|█▏        | 9/75 [00:00<00:03, 17.59it/s] 16%|█▌        | 12/75 [00:00<00:03, 19.70it/s] 19%|█▊        | 14/75 [00:00<00:03, 15.72it/s] 21%|██▏       | 16/75 [00:00<00:03, 15.69it/s] 24%|██▍       | 18/75 [00:01<00:03, 16.66it/s] 27%|██▋       | 20/75 [00:01<00:03, 15.13it/s] 29%|██▉       | 22/75 [00:01<00:03, 15.67it/s] 32%|███▏      | 24/75 [00:01<00:03, 15.10it/s] 35%|███▍      | 26/75 [00:01<00:03, 14.34it/s] 37%|███▋      | 28/75 [00:01<00:03, 14.84it/s] 40%|████      | 30/75 [00:01<00:03, 14.47it/s] 43%|████▎     | 32/75 [00:02<00:02, 15.22it/s] 45%|████▌     | 34/75 [00:02<00:02, 15.28it/s] 48%|████▊     | 36/75 [00:02<00:02, 13.90it/s] 51%|█████     | 38/75 [00:02<00:02, 14.90it/s] 53%|█████▎    | 40/75 [00:02<00:02, 14.79it/s] 56%|█████▌    | 42/75 [00:02<00:02, 16.01it/s] 60%|██████    | 45/75 [00:02<00:01, 19.07it/s] 64%|██████▍   | 48/75 [00:02<00:01, 20.56it/s] 68%|██████▊   | 51/75 [00:03<00:01, 21.10it/s] 72%|███████▏  | 54/75 [00:03<00:00, 21.68it/s] 76%|███████▌  | 57/75 [00:03<00:00, 21.19it/s] 80%|████████  | 60/75 [00:03<00:00, 21.96it/s] 84%|████████▍ | 63/75 [00:03<00:00, 23.17it/s] 88%|████████▊ | 66/75 [00:03<00:00, 22.86it/s] 92%|█████████▏| 69/75 [00:03<00:00, 18.97it/s] 96%|█████████▌| 72/75 [00:04<00:00, 20.33it/s]100%|██████████| 75/75 [00:04<00:00, 21.80it/s]100%|██████████| 75/75 [00:04<00:00, 17.98it/s]
+  0%|          | 0/10 [00:00<?, ?it/s] 20%|██        | 2/10 [00:00<00:00, 13.50it/s] 40%|████      | 4/10 [00:00<00:00, 13.59it/s] 60%|██████    | 6/10 [00:00<00:00, 13.53it/s] 80%|████████  | 8/10 [00:00<00:00, 13.74it/s]100%|██████████| 10/10 [00:05<00:00,  1.03it/s]100%|██████████| 10/10 [00:05<00:00,  1.75it/s]
+/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=VGG16_Weights.IMAGENET1K_V1`. You can also use `weights=VGG16_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Steps:   0%|          | 0/4000 [00:00<?, ?it/s]Traceback (most recent call last):
+  File "/home/mfsvensson/TFG_reps/Old-img2img-turbo/src/Cyclegan_Train_turbo.py", line 461, in <module>
+    main(args)
+  File "/home/mfsvensson/TFG_reps/Old-img2img-turbo/src/Cyclegan_Train_turbo.py", line 225, in main
+    cyc_rec_a = CycleGAN_Turbo.forward_with_networks(cyc_fake_b, "b2a", vae_enc, unet, vae_dec, noise_scheduler_1step, timesteps, fixed_b2a_emb)
+  File "/home/mfsvensson/TFG_reps/Old-img2img-turbo/src/cyclegan_turbo.py", line 221, in forward_with_networks
+    x_out_decoded = vae_dec(x_out, direction=direction)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/mfsvensson/TFG_reps/Old-img2img-turbo/src/cyclegan_turbo.py", line 44, in forward
+    x_decoded = (_vae.decode(x / _vae.config.scaling_factor).sample).clamp(-1, 1)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/diffusers/utils/accelerate_utils.py", line 46, in wrapper
+    return method(self, *args, **kwargs)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/diffusers/models/autoencoders/autoencoder_kl.py", line 304, in decode
+    decoded = self._decode(z).sample
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/diffusers/models/autoencoders/autoencoder_kl.py", line 275, in _decode
+    dec = self.decoder(z)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/mfsvensson/TFG_reps/Old-img2img-turbo/src/model.py", line 53, in my_vae_decoder_fwd
+    sample = up_block(sample, latent_embeds)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/diffusers/models/unet_2d_blocks.py", line 2531, in forward
+    hidden_states = resnet(hidden_states, temb=temb, scale=scale)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/diffusers/models/resnet.py", line 225, in forward
+    hidden_states = self.conv1(hidden_states, scale) if not USE_PEFT_BACKEND else self.conv1(hidden_states)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/peft/tuners/lora/layer.py", line 663, in forward
+    result += lora_B(lora_A(dropout(x))) * scaling
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 460, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 456, in _conv_forward
+    return F.conv2d(input, weight, bias, self.stride,
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 256.00 MiB. GPU 
+Steps:   0%|          | 0/4000 [00:04<?, ?it/s]
+Traceback (most recent call last):
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/bin/accelerate", line 7, in <module>
+    sys.exit(main())
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/accelerate/commands/accelerate_cli.py", line 47, in main
+    args.func(args)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/accelerate/commands/launch.py", line 1017, in launch_command
+    simple_launcher(args)
+  File "/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/lib/python3.10/site-packages/accelerate/commands/launch.py", line 637, in simple_launcher
+    raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
+subprocess.CalledProcessError: Command '['/data/upftfg19/mfsvensson/.conda/envs/Pined-img2img-turbo-fixed/bin/python3.10', 'src/Cyclegan_Train_turbo.py', '--pretrained_model_name_or_path', '/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo', '--output_dir', '/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/baseLine_LongTrained_Cycle', '--dataset_folder', '/data/upftfg19/mfsvensson/Data_TFG/Final_unpaired', '--train_batch_size', '4', '--max_train_steps', '4000', '--enable_xformers_memory_efficient_attention', '--learning_rate', '1e-5', '--gradient_accumulation_steps', '1', '--train_img_prep', 'resize_512', '--val_img_prep', 'resize_512', '--viz_freq', '25', '--vae_ignore_skip', 'False', '--vae_skip_weight', '1.0']' returned non-zero exit status 1.
