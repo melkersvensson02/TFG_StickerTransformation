@@ -3,7 +3,8 @@ import gc
 import copy
 import lpips
 import torch
-#import wandb
+import torch.nn.functional as F
+import wandb
 from pathlib import Path
 from glob import glob
 import numpy as np
@@ -24,13 +25,134 @@ from my_utils.training_utils import UnpairedDataset, build_transform, parse_args
 from my_utils.dino_struct import DinoStructureLoss
 
 
+def gradient_difference_loss(img1, img2, dtype=torch.float32):
+    """
+    Gradient Difference Loss using Sobel operators.
+    Measures difference in gradients (edges) between two images.
+    
+    FIXED: Added dtype parameter to handle mixed precision training properly.
+    Sobel kernels are created directly in the target dtype to avoid conversion issues.
+    """
+    # FIXED: Create Sobel kernels directly in target dtype and device
+    gx = torch.tensor([[-1., 0., 1.], [-2., 0., 2.], [-1., 0., 1.]], dtype=dtype, device=img1.device)
+    gy = torch.tensor([[-1., -2., -1.], [0., 0., 0.], [1., 2., 1.]], dtype=dtype, device=img1.device)
+    gx = gx.view(1, 1, 3, 3)
+    gy = gy.view(1, 1, 3, 3)
+    
+    # Convert to grayscale if needed (take mean across channels)
+    if img1.shape[1] == 3:
+        img1_gray = img1.mean(dim=1, keepdim=True)
+        img2_gray = img2.mean(dim=1, keepdim=True)
+    else:
+        img1_gray = img1
+        img2_gray = img2
+    
+    # Compute gradients
+    grad1_x = F.conv2d(img1_gray, gx, padding=1)
+    grad1_y = F.conv2d(img1_gray, gy, padding=1)
+    grad2_x = F.conv2d(img2_gray, gx, padding=1)
+    grad2_y = F.conv2d(img2_gray, gy, padding=1)
+    
+    # L1 loss on gradients
+    loss = F.l1_loss(grad1_x, grad2_x) + F.l1_loss(grad1_y, grad2_y)
+    return loss
+
+def extract_mask_from_image(img, threshold=1.0):
+
+    # Convert [-1, 1] to [0, 1]
+    img_normalized = (img + 1) / 2
+    
+    # Check if all channels are close to 1.0 (pure white)
+    # Use threshold slightly below 1.0 to account for minor variations
+    mask = (img_normalized.mean(dim=1, keepdim=True) < 0.99).float()
+    
+    return mask
+def apply_mask_to_image(img, mask, background_value=1.0):
+
+    masked_img = img * mask + (1 - mask) * background_value
+    return masked_img
+
+class ContextualLoss:
+    """
+    Contextual Loss using VGG relu3_3 features.
+    Measures patch-wise cosine similarity with max-pooling over patches.
+    
+    FIXED: VGG16 kept in float32 for numerical stability.
+    Input images are converted to float32, processed, then results converted back.
+    """
+    def __init__(self, device="cuda", dtype=torch.float32):
+        self.device = device
+        self.dtype = dtype  # FIXED: Store target dtype for mixed precision
+        # Load pretrained VGG16
+        import torchvision.models as models
+        # FIXED: Explicitly keep VGG in float32 for stability
+        vgg16 = models.vgg16(pretrained=True).to(device).to(torch.float32)
+        vgg16.eval()
+        for param in vgg16.parameters():
+            param.requires_grad = False
+        
+        # Extract up to relu3_3 (layer 16 in VGG16 features)
+        self.features_extractor = torch.nn.Sequential(*list(vgg16.features.children())[:16]).to(device).to(torch.float32)
+        self.features_extractor.eval()
+    
+    def forward(self, img1, img2):
+        """
+        Compute contextual loss between img1 and img2.
+        img1, img2: tensors of shape (B, C, H, W) with values in [-1, 1]
+        
+        FIXED: Convert inputs to float32 for VGG processing to handle mixed precision.
+        """
+        # FIXED: Convert to float32 for VGG processing (numerical stability)
+        img1 = img1.float()
+        img2 = img2.float()
+        
+        # Normalize to [0, 1] and then to ImageNet stats
+        img1_norm = (img1 + 1) / 2  # [-1, 1] -> [0, 1]
+        img2_norm = (img2 + 1) / 2
+        
+        # FIXED: Create tensors in float32 explicitly
+        mean = torch.tensor([0.485, 0.456, 0.406], device=self.device, dtype=torch.float32).view(1, 3, 1, 1)
+        std = torch.tensor([0.229, 0.224, 0.225], device=self.device, dtype=torch.float32).view(1, 3, 1, 1)
+        img1_norm = (img1_norm - mean) / std
+        img2_norm = (img2_norm - mean) / std
+        
+        with torch.no_grad():
+            feat1 = self.features_extractor(img1_norm)  # (B, 256, H/8, W/8)
+            feat2 = self.features_extractor(img2_norm)
+        
+        # Reshape to (B, C, -1) for patch-wise operations
+        B, C, H, W = feat1.shape
+        feat1_patches = feat1.view(B, C, -1)  # (B, 256, N_patches)
+        feat2_patches = feat2.view(B, C, -1)
+        
+        # Normalize for cosine similarity
+        feat1_patches = F.normalize(feat1_patches, dim=1)  # (B, 256, N_patches)
+        feat2_patches = F.normalize(feat2_patches, dim=1)
+        
+        # Compute cosine similarity matrix (B, N_patches, N_patches)
+        # sim[b, i, j] = cosine similarity between patch i in feat1 and patch j in feat2
+        sim = torch.bmm(feat1_patches.permute(0, 2, 1), feat2_patches)  # (B, N_patches, N_patches)
+        
+        # Max-pooling: for each patch in feat1, find best match in feat2
+        max_sim_per_patch = sim.max(dim=2)[0]  # (B, N_patches)
+        
+        # Contextual loss: negative log of average max similarity
+        cx_loss = -torch.log(max_sim_per_patch.mean() + 1e-5)
+        
+        return cx_loss
+
+
 def main(args):
     # create one text file and one json file at the output dir
     os.makedirs(args.output_dir, exist_ok=True)
     JSON_FILE = os.path.join(args.output_dir, "metrics.jsonl")
     metrics_file = JSON_FILE
     TEXT_FILE = os.path.join(args.output_dir, "runing_information.txt") 
-    accelerator = Accelerator(gradient_accumulation_steps=args.gradient_accumulation_steps, log_with=args.report_to)
+    accelerator = Accelerator(
+    gradient_accumulation_steps=args.gradient_accumulation_steps,
+    mixed_precision=args.mixed_precision,  
+    log_with=args.report_to
+    )
     set_seed(args.seed)
 
     if accelerator.is_main_process:
@@ -45,21 +167,37 @@ def main(args):
     # Initalize the VAE (here we add the LoRA layers as well) need to change path name inside here to local
     vae_a2b, vae_lora_target_modules = initialize_vae(args.lora_rank_vae, return_lora_module_names=True, ignore_skip=args.vae_ignore_skip, skip_weight=args.vae_skip_weight)
     write_text(TEXT_FILE, f"Pased UNET and VAE initialization \n")
-    weight_dtype = torch.float32
-    # Move models to GPU if available 
-    # Moves the model to the device that accelerator is managing
-    # For accelerator.backward(loss), the gradients for all parameters with requires_grad=True 
-    # and are on the accelerator are computed and accumulated.
-    vae_a2b.to(accelerator.device, dtype=weight_dtype)
-    text_encoder.to(accelerator.device, dtype=weight_dtype)
-    unet.to(accelerator.device, dtype=weight_dtype)
+    
+    # Determine weight dtype for mixed precision training
+    # NOTE: With Accelerator mixed_precision enabled, models stay in float32 (master weights)
+    # but Accelerator's autocast automatically uses fp16/bf16 for operations during forward pass.
+    # This weight_dtype variable is used for:
+    #   1. Input data tensors (img_a, img_b) - converts to fp16/bf16 for performance
+    #   2. GDL Sobel kernel creation (matches input dtype)
+    #   3. Logging/reference (what dtype operations will use)
+    if args.mixed_precision == "fp16":
+        weight_dtype = torch.float16
+    elif args.mixed_precision == "bf16":
+        weight_dtype = torch.bfloat16
+    else:
+        weight_dtype = torch.float32
+    
+    # Move models to CUDA (but keep them in float32)
+    # Accelerator will manage dtype conversions via autocast during forward pass
+    text_encoder.cuda()
+    unet.cuda()
+    vae_a2b.cuda()
     text_encoder.requires_grad_(False)
-    # Initialize discriminators 
+    
+    # Initialize discriminators
+    # NOTE: Discriminators stay in float32, Accelerator's autocast manages dtype conversions
+    # CLIP backbone (frozen) operations stay float32 for stability
+    # Discriminator head (trainable) operations use fp16/bf16 via autocast
     if args.gan_disc_type == "vagan_clip":
         net_disc_a = vision_aided_loss.Discriminator(cv_type='clip', loss_type=args.gan_loss_type, device="cuda")
-        net_disc_a.cv_ensemble.requires_grad_(False)  # Freeze feature extractor
+        net_disc_a.cv_ensemble.requires_grad_(False)  # Freeze CLIP feature extractor
         net_disc_b = vision_aided_loss.Discriminator(cv_type='clip', loss_type=args.gan_loss_type, device="cuda")
-        net_disc_b.cv_ensemble.requires_grad_(False)  # Freeze feature extractor
+        net_disc_b.cv_ensemble.requires_grad_(False)  # Freeze CLIP feature extractor
 
     # Define loss functions
     crit_cycle, crit_idt = torch.nn.L1Loss(), torch.nn.L1Loss()
@@ -164,10 +302,21 @@ def main(args):
         num_cycles=args.lr_num_cycles, power=args.lr_power)
     
     # Initialize LPIPS model for perceptual loss
+    # NOTE: LPIPS will be moved to weight_dtype after accelerator.prepare()
+    # But inputs are still converted to .float() at call sites for numerical stability
+    # (following pix2pix approach at line 388-389)
     net_lpips = lpips.LPIPS(net='vgg')
     net_lpips.cuda()
     net_lpips.requires_grad_(False)
     write_text(TEXT_FILE, f"LPIPS model initialized \n")
+    
+    # Initialize Contextual Loss if needed
+    net_cx = None
+    if args.lambda_cx > 0:
+        # FIXED: Pass dtype parameter for mixed precision handling
+        net_cx = ContextualLoss(device="cuda", dtype=weight_dtype)
+        write_text(TEXT_FILE, f"Contextual Loss model initialized \n")
+    
     # Precompute the fixed text embeddings for the fixed captions
     fixed_a2b_tokens = tokenizer(fixed_caption_tgt, max_length=tokenizer.model_max_length, padding="max_length", truncation=True, return_tensors="pt").input_ids[0]
     fixed_a2b_emb_base = text_encoder(fixed_a2b_tokens.cuda().unsqueeze(0))[0].detach()
@@ -176,13 +325,32 @@ def main(args):
     del text_encoder, tokenizer  # free up some memory
 
     # Prepare everything with accelerator
+    # Prepare trainable models and optimizers with accelerator (enables mixed precision, distributed training)
     unet, vae_enc, vae_dec, net_disc_a, net_disc_b = accelerator.prepare(unet, vae_enc, vae_dec, net_disc_a, net_disc_b)
     net_lpips, optimizer_gen, optimizer_disc, train_dataloader, lr_scheduler_gen, lr_scheduler_disc = accelerator.prepare(
         net_lpips, optimizer_gen, optimizer_disc, train_dataloader, lr_scheduler_gen, lr_scheduler_disc
     )
+    
+    # CRITICAL: Move models to weight_dtype AFTER accelerator.prepare()
+    # This matches pix2pix approach (Train_pix2pix_turbo.py lines 286-289)
+    # We MUST convert models to target dtype for xformers compatibility with Q/K/V
+    unet.to(dtype=weight_dtype)
+    vae_enc.to(dtype=weight_dtype)
+    vae_dec.to(dtype=weight_dtype)
+    net_disc_a.to(dtype=weight_dtype)
+    net_disc_b.to(dtype=weight_dtype)
+    
+    # LPIPS: Keep in float32 to match .float() input conversions
+    # VGG-based models are more stable in float32 anyway
+    net_lpips.to(dtype=torch.float32)
+    
+    write_text(TEXT_FILE, f"\nTrainable models converted to dtype={weight_dtype}\n")
+    write_text(TEXT_FILE, f"LPIPS kept in float32 for numerical stability\n")
+    
     # Starts logging metrics/training progress to Weights & Biases, TensorBoard, or similar
     if accelerator.is_main_process:
-        accelerator.init_trackers(args.tracker_project_name, config=dict(vars(args)))
+        accelerator.init_trackers(args.tracker_project_name, config=dict(vars(args)), 
+                             init_kwargs={"wandb": {"mode": "offline"}})
 
     first_epoch = 0
     global_step = 0
@@ -223,13 +391,30 @@ def main(args):
                 # The UNet learns to interpret those latents and apply the right transformation 
                 cyc_fake_b = CycleGAN_Turbo.forward_with_networks(img_a, "a2b", vae_enc, unet, vae_dec, noise_scheduler_1step, timesteps, fixed_a2b_emb)
                 cyc_rec_a = CycleGAN_Turbo.forward_with_networks(cyc_fake_b, "b2a", vae_enc, unet, vae_dec, noise_scheduler_1step, timesteps, fixed_b2a_emb)
-                loss_cycle_a = crit_cycle(cyc_rec_a, img_a) * args.lambda_cycle
-                loss_cycle_a += net_lpips(cyc_rec_a, img_a).mean() * args.lambda_cycle_lpips
+                # Extract mask from img_a (the reference in domain A)
+                mask_a = extract_mask_from_image(img_a)
+                # Apply mask to reconstructed image
+                cyc_rec_a_masked = apply_mask_to_image(cyc_rec_a, mask_a, background_value=1.0)
+                # Compute Lrec on masked reconstruction
+                loss_cycle_a = crit_cycle(cyc_rec_a_masked, img_a) * args.lambda_cycle
+                # Convert to float for LPIPS (following pix2pix approach for numerical stability)
+                loss_cycle_a += net_lpips(cyc_rec_a_masked.float(), img_a.float()).mean() * args.lambda_cycle_lpips
+                write_text(TEXT_FILE, f"Loss cycle A: {loss_cycle_a}\n")
+                if args.lambda_gdl > 0:
+                    loss_cycle_a += gradient_difference_loss(cyc_rec_a_masked, img_a, dtype=weight_dtype) * args.lambda_gdl
+                if net_cx is not None and args.lambda_cx > 0:
+                    loss_cycle_a += net_cx.forward(cyc_rec_a_masked, img_a) * args.lambda_cx
                 # B -> fake A -> rec B
                 cyc_fake_a = CycleGAN_Turbo.forward_with_networks(img_b, "b2a", vae_enc, unet, vae_dec, noise_scheduler_1step, timesteps, fixed_b2a_emb)
                 cyc_rec_b = CycleGAN_Turbo.forward_with_networks(cyc_fake_a, "a2b", vae_enc, unet, vae_dec, noise_scheduler_1step, timesteps, fixed_a2b_emb)
                 loss_cycle_b = crit_cycle(cyc_rec_b, img_b) * args.lambda_cycle
-                loss_cycle_b += net_lpips(cyc_rec_b, img_b).mean() * args.lambda_cycle_lpips
+                # Convert to float for LPIPS (following pix2pix approach for numerical stability)
+                loss_cycle_b += net_lpips(cyc_rec_b.float(), img_b.float()).mean() * args.lambda_cycle_lpips
+                if args.lambda_gdl > 0:
+                    loss_cycle_b += gradient_difference_loss(cyc_rec_b, img_b, dtype=weight_dtype) * args.lambda_gdl
+                if net_cx is not None and args.lambda_cx > 0:
+                    loss_cycle_b += net_cx.forward(cyc_rec_b, img_b) * args.lambda_cx
+                write_text(TEXT_FILE, f"Loss cycle B: {loss_cycle_b}\n")
                 # The models are wrapped by accelerate for distributed/FP16 training.
                 accelerator.backward(loss_cycle_a + loss_cycle_b, retain_graph=False)
                 if accelerator.sync_gradients:
@@ -244,8 +429,11 @@ def main(args):
                 """
                 fake_a = CycleGAN_Turbo.forward_with_networks(img_b, "b2a", vae_enc, unet, vae_dec, noise_scheduler_1step, timesteps, fixed_b2a_emb)
                 fake_b = CycleGAN_Turbo.forward_with_networks(img_a, "a2b", vae_enc, unet, vae_dec, noise_scheduler_1step, timesteps, fixed_a2b_emb)
+                # Discriminator can handle weight_dtype directly (following pix2pix approach)
                 loss_gan_a = net_disc_a(fake_b, for_G=True).mean() * args.lambda_gan
+                write_text(TEXT_FILE, f"Loss GAN A: {loss_gan_a}\n")
                 loss_gan_b = net_disc_b(fake_a, for_G=True).mean() * args.lambda_gan
+                write_text(TEXT_FILE, f"Loss GAN B: {loss_gan_b}\n")
                 accelerator.backward(loss_gan_a + loss_gan_b, retain_graph=False)
                 if accelerator.sync_gradients:
                     accelerator.clip_grad_norm_(params_gen, args.max_grad_norm)
@@ -259,10 +447,21 @@ def main(args):
                 """
                 idt_a = CycleGAN_Turbo.forward_with_networks(img_b, "a2b", vae_enc, unet, vae_dec, noise_scheduler_1step, timesteps, fixed_a2b_emb)
                 loss_idt_a = crit_idt(idt_a, img_b) * args.lambda_idt
-                loss_idt_a += net_lpips(idt_a, img_b).mean() * args.lambda_idt_lpips
+                # Convert to float for LPIPS (following pix2pix approach for numerical stability)
+                loss_idt_a += net_lpips(idt_a.float(), img_b.float()).mean() * args.lambda_idt_lpips
+                if args.lambda_gdl > 0:
+                    loss_idt_a += gradient_difference_loss(idt_a, img_b, dtype=weight_dtype) * args.lambda_gdl
+                if net_cx is not None and args.lambda_cx > 0:
+                    loss_idt_a += net_cx.forward(idt_a, img_b) * args.lambda_cx
                 idt_b = CycleGAN_Turbo.forward_with_networks(img_a, "b2a", vae_enc, unet, vae_dec, noise_scheduler_1step, timesteps, fixed_b2a_emb)
                 loss_idt_b = crit_idt(idt_b, img_a) * args.lambda_idt
-                loss_idt_b += net_lpips(idt_b, img_a).mean() * args.lambda_idt_lpips
+                # Convert to float for LPIPS (following pix2pix approach for numerical stability)
+                loss_idt_b += net_lpips(idt_b.float(), img_a.float()).mean() * args.lambda_idt_lpips
+                write_text(TEXT_FILE, f"Loss IDT A: {loss_idt_a}\n")
+                if args.lambda_gdl > 0:
+                    loss_idt_b += gradient_difference_loss(idt_b, img_a, dtype=weight_dtype) * args.lambda_gdl
+                if net_cx is not None and args.lambda_cx > 0:
+                    loss_idt_b += net_cx.forward(idt_b, img_a) * args.lambda_cx
                 loss_g_idt = loss_idt_a + loss_idt_b
                 accelerator.backward(loss_g_idt, retain_graph=False)
                 if accelerator.sync_gradients:
@@ -274,8 +473,11 @@ def main(args):
                 """
                 Discriminator for task a->b and b->a (fake inputs)
                 """
+                # Discriminator can handle weight_dtype directly (following pix2pix approach)
                 loss_D_A_fake = net_disc_a(fake_b.detach(), for_real=False).mean() * args.lambda_gan
                 loss_D_B_fake = net_disc_b(fake_a.detach(), for_real=False).mean() * args.lambda_gan
+                write_text(TEXT_FILE, f"Loss D A fake: {loss_D_A_fake}\n")
+                write_text(TEXT_FILE, f"Loss D B fake: {loss_D_B_fake}\n")
                 loss_D_fake = (loss_D_A_fake + loss_D_B_fake) * 0.5
                 accelerator.backward(loss_D_fake, retain_graph=False)
                 if accelerator.sync_gradients:
@@ -288,8 +490,11 @@ def main(args):
                 """
                 Discriminator for task a->b and b->a (real inputs)
                 """
+                # Discriminator can handle weight_dtype directly (following pix2pix approach)
                 loss_D_A_real = net_disc_a(img_b, for_real=True).mean() * args.lambda_gan
                 loss_D_B_real = net_disc_b(img_a, for_real=True).mean() * args.lambda_gan
+                write_text(TEXT_FILE, f"Loss D A real: {loss_D_A_real}\n")
+                write_text(TEXT_FILE, f"Loss D B real: {loss_D_B_real}\n")
                 loss_D_real = (loss_D_A_real + loss_D_B_real) * 0.5
                 accelerator.backward(loss_D_real, retain_graph=False)
                 if accelerator.sync_gradients:
@@ -300,6 +505,16 @@ def main(args):
                 optimizer_disc.zero_grad()
 
             logs = {}
+            # FIXED: Check for NaN in tensors BEFORE converting to .item()
+            if torch.isnan(loss_cycle_a).any() and globle_step % 10 == 9:  # Only check after 9 steps 
+                write_text(TEXT_FILE, f"\n{'='*80}\n")
+                write_text(TEXT_FILE, f"ERROR: NaN detected in loss_cycle_a at step {global_step}\n")
+                write_text(TEXT_FILE, f"  img_a stats: min={img_a.min().item()}, max={img_a.max().item()}, mean={img_a.mean().item()}\n")
+                write_text(TEXT_FILE, f"  mask_a stats: min={mask_a.min().item()}, max={mask_a.max().item()}, mean={mask_a.mean().item()}\n")
+                write_text(TEXT_FILE, f"  cyc_rec_a_masked stats: min={cyc_rec_a_masked.min().item()}, max={cyc_rec_a_masked.max().item()}, mean={cyc_rec_a_masked.mean().item()}\n")
+                write_text(TEXT_FILE, f"{'='*80}\n")
+                raise RuntimeError(f"EXECUTION STOPPED: NaN in loss_cycle_a at step {global_step}")
+            
             logs["cycle_a"] = loss_cycle_a.detach().item()
             logs["cycle_b"] = loss_cycle_b.detach().item()
             logs["gan_a"] = loss_gan_a.detach().item()
@@ -308,22 +523,59 @@ def main(args):
             logs["disc_b"] = loss_D_B_fake.detach().item() + loss_D_B_real.detach().item()
             logs["idt_a"] = loss_idt_a.detach().item()
             logs["idt_b"] = loss_idt_b.detach().item()
-            del loss_cycle_a, loss_cycle_b
-            del loss_gan_a, loss_gan_b
-            del loss_D_A_fake, loss_D_A_real
-            del loss_D_B_fake, loss_D_B_real
-            del loss_idt_a, loss_idt_b
+            
+            # FIXED: Comprehensive NaN detection with execution stopping
+            nan_detected = False
+            nan_keys = []
+            for key, value in logs.items():
+                if np.isnan(value):
+                    nan_detected = True
+                    nan_keys.append(key)
+            
+            if nan_detected:
+                write_text(TEXT_FILE, f"\n{'='*80}\n")
+                write_text(TEXT_FILE, f"ERROR: NaN detected at step {global_step}\n")
+                write_text(TEXT_FILE, f"NaN in losses: {nan_keys}\n")
+                write_text(TEXT_FILE, f"All loss values: {logs}\n")
+                write_text(TEXT_FILE, f"\nDiagnostics:\n")
+                write_text(TEXT_FILE, f"  img_a stats: min={img_a.min().item()}, max={img_a.max().item()}, mean={img_a.mean().item()}\n")
+                write_text(TEXT_FILE, f"  img_b stats: min={img_b.min().item()}, max={img_b.max().item()}, mean={img_b.mean().item()}\n")
+                write_text(TEXT_FILE, f"  mask_a stats: min={mask_a.min().item()}, max={mask_a.max().item()}, mean={mask_a.mean().item()}\n")
+                write_text(TEXT_FILE, f"  cyc_fake_b stats: min={cyc_fake_b.min().item()}, max={cyc_fake_b.max().item()}, mean={cyc_fake_b.mean().item()}\n")
+                write_text(TEXT_FILE, f"  cyc_rec_a stats: min={cyc_rec_a.min().item()}, max={cyc_rec_a.max().item()}, mean={cyc_rec_a.mean().item()}\n")
+                write_text(TEXT_FILE, f"  cyc_rec_a_masked stats: min={cyc_rec_a_masked.min().item()}, max={cyc_rec_a_masked.max().item()}, mean={cyc_rec_a_masked.mean().item()}\n")
+                write_text(TEXT_FILE, f"  weight_dtype: {weight_dtype}\n")
+                write_text(TEXT_FILE, f"{'='*80}\n")
+                raise RuntimeError(f"EXECUTION STOPPED: NaN detected in losses {nan_keys} at step {global_step}. Check diagnostics in {TEXT_FILE}")
+            
+            # REMOVED: Unnecessary del statements - Python garbage collector handles this
             write_text(TEXT_FILE, f"Step {logs}: wrote metrics")
 
             if accelerator.sync_gradients:
                 progress_bar.update(1)
                 global_step += 1
-
                 if accelerator.is_main_process:
                     eval_unet = accelerator.unwrap_model(unet)
                     # Get trainable parameters of from encoder in both directions
                     eval_vae_enc = accelerator.unwrap_model(vae_enc)
                     eval_vae_dec = accelerator.unwrap_model(vae_dec)
+                    if global_step % args.viz_freq == 1:
+                        for tracker in accelerator.trackers:
+                            if tracker.name == "wandb":
+                                viz_img_a = batch["pixel_values_src"].to(dtype=weight_dtype)
+                                viz_img_b = batch["pixel_values_tgt"].to(dtype=weight_dtype)
+                                # FIXED: Convert to float32, normalize to [0,1], and clamp for proper visualization
+                                log_dict = {
+                                    "train/real_a": [wandb.Image((viz_img_a[idx].float() * 0.5 + 0.5).clamp(0, 1).detach().cpu(), caption=f"idx={idx}") for idx in range(bsz)],
+                                    "train/real_b": [wandb.Image((viz_img_b[idx].float() * 0.5 + 0.5).clamp(0, 1).detach().cpu(), caption=f"idx={idx}") for idx in range(bsz)],
+                                }
+                                log_dict["train/rec_a"] = [wandb.Image((cyc_rec_a[idx].float() * 0.5 + 0.5).clamp(0, 1).detach().cpu(), caption=f"idx={idx}") for idx in range(bsz)]
+                                log_dict["train/rec_b"] = [wandb.Image((cyc_rec_b[idx].float() * 0.5 + 0.5).clamp(0, 1).detach().cpu(), caption=f"idx={idx}") for idx in range(bsz)]
+                                log_dict["train/fake_b"] = [wandb.Image((fake_b[idx].float() * 0.5 + 0.5).clamp(0, 1).detach().cpu(), caption=f"idx={idx}") for idx in range(bsz)]
+                                log_dict["train/fake_a"] = [wandb.Image((fake_a[idx].float() * 0.5 + 0.5).clamp(0, 1).detach().cpu(), caption=f"idx={idx}") for idx in range(bsz)]
+                                tracker.log(log_dict)
+                                gc.collect()
+                                torch.cuda.empty_cache()
                     # Save LoRA and VAE weights (when training is finished this will be the final model)
                     if global_step % args.checkpointing_steps == 1:
                         outf = os.path.join(args.output_dir, "checkpoints", f"model_{global_step}.pkl")
@@ -369,16 +621,25 @@ def main(args):
                                 input_img = T_val(Image.open(input_img_path).convert("RGB"))
                                 #print(f"Input PIL size: {input_img.size}")
                                 img_a = transforms.ToTensor()(input_img)
-                                img_a = transforms.Normalize([0.5], [0.5])(img_a).unsqueeze(0).cuda()
+                                img_a = transforms.Normalize([0.5], [0.5])(img_a).unsqueeze(0).cuda().to(dtype=weight_dtype)
                                 #print(f"img_a tensor shape: {img_a.shape}")
                                 eval_fake_b = CycleGAN_Turbo.forward_with_networks(img_a, "a2b", eval_vae_enc, eval_unet,
                                     eval_vae_dec, noise_scheduler_1step, _timesteps, fixed_a2b_emb[0:1])
                                 #print(f"eval_fake_b tensor shape: {eval_fake_b.shape}")
-                                eval_fake_b_pil = transforms.ToPILImage()(eval_fake_b[0] * 0.5 + 0.5)
+                                # FIXED: Convert to float32 and clamp before ToPILImage for mixed precision compatibility
+                                eval_fake_b_pil = transforms.ToPILImage()((eval_fake_b[0].float() * 0.5 + 0.5).clamp(0, 1))
                                 #print(f"Output PIL size: {eval_fake_b_pil.size}")
                                 # Resize to match input ONLY for metrics
                                 eval_fake_b_pil_for_metrics = eval_fake_b_pil.resize(input_img.size, Image.LANCZOS)
                                 eval_fake_b_pil.save(outf)
+                                # FIXED: Check if image is all black (catastrophic failure detection)
+                                img_array = np.array(eval_fake_b_pil)
+                                mean_intensity = img_array.mean()
+                                if mean_intensity < 1.0:  # Essentially black image (0-255 scale)
+                                    write_text(TEXT_FILE, f"\nERROR: FID image is all black at step {global_step}, file {outf}\n")
+                                    write_text(TEXT_FILE, f"  Mean intensity: {mean_intensity}\n")
+                                    write_text(TEXT_FILE, f"  eval_fake_b stats: min={eval_fake_b.min().item()}, max={eval_fake_b.max().item()}, mean={eval_fake_b.mean().item()}\n")
+                                    raise RuntimeError(f"EXECUTION STOPPED: FID images are all black at step {global_step}. Check model outputs and dtype handling.")
                                 a = net_dino.preprocess(input_img).unsqueeze(0).cuda()
                                 b = net_dino.preprocess(eval_fake_b_pil_for_metrics).unsqueeze(0).cuda()
                                 #print(f"DINO a shape: {a.shape}, DINO b shape: {b.shape}")
@@ -408,11 +669,20 @@ def main(args):
                             with torch.no_grad():
                                 input_img = T_val(Image.open(input_img_path).convert("RGB"))
                                 img_b = transforms.ToTensor()(input_img)
-                                img_b = transforms.Normalize([0.5], [0.5])(img_b).unsqueeze(0).cuda()
+                                img_b = transforms.Normalize([0.5], [0.5])(img_b).unsqueeze(0).cuda().to(dtype=weight_dtype)
                                 eval_fake_a = CycleGAN_Turbo.forward_with_networks(img_b, "b2a", eval_vae_enc, eval_unet,
                                     eval_vae_dec, noise_scheduler_1step, _timesteps, fixed_b2a_emb[0:1])
-                                eval_fake_a_pil = transforms.ToPILImage()(eval_fake_a[0] * 0.5 + 0.5)
+                                # FIXED: Convert to float32 and clamp before ToPILImage for mixed precision compatibility
+                                eval_fake_a_pil = transforms.ToPILImage()((eval_fake_a[0].float() * 0.5 + 0.5).clamp(0, 1))
                                 eval_fake_a_pil.save(outf)
+                                # FIXED: Check if image is all black (catastrophic failure detection)
+                                img_array = np.array(eval_fake_a_pil)
+                                mean_intensity = img_array.mean()
+                                if mean_intensity < 1.0:  # Essentially black image (0-255 scale)
+                                    write_text(TEXT_FILE, f"\nERROR: FID image is all black at step {global_step}, file {outf}\n")
+                                    write_text(TEXT_FILE, f"  Mean intensity: {mean_intensity}\n")
+                                    write_text(TEXT_FILE, f"  eval_fake_a stats: min={eval_fake_a.min().item()}, max={eval_fake_a.max().item()}, mean={eval_fake_a.mean().item()}\n")
+                                    raise RuntimeError(f"EXECUTION STOPPED: FID images are all black at step {global_step}. Check model outputs and dtype handling.")
                                 a = net_dino.preprocess(input_img).unsqueeze(0).cuda()
                                 b = net_dino.preprocess(eval_fake_a_pil).unsqueeze(0).cuda()
                                 dino_ssim = net_dino.calculate_global_ssim_loss(a, b).item()
@@ -431,8 +701,6 @@ def main(args):
                         # Save the parameters 
                         write_json_metrics(JSON_FILE, global_step, logs)
                         write_text(TEXT_FILE, f"Step {global_step}: wrote metrics")
-
-
 
             progress_bar.set_postfix(**logs)
             accelerator.log(logs, step=global_step)
@@ -467,20 +735,3 @@ if __name__ == "__main__":
     args = parse_args_unpaired_training()
     main(args)
 
-
-"""
-Command to run training:
-export NCCL_P2P_DISABLE=1
-accelerate launch src/Cyclegan_Train_turbo.py \
-    --pretrained_model_name_or_path="/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo" \
-    --output_dir="outputs/myUnPairedDataset/" \
-    --dataset_folder "/data/upftfg19/mfsvensson/Data_TFG/myUnPairedDataset" \
-    --train_img_prep "resize_286_randomcrop_256x256_hflip" --val_img_prep "no_resize" \
-    --learning_rate="1e-5" --max_train_steps=25000 \
-    --train_batch_size=128 --gradient_accumulation_steps=1 \
-    --enable_xformers_memory_efficient_attention --validation_steps 250 \
-pix2pix_turbo-1822148.err  pix2pix_turbo-1822148.out    --lambda_gan 0.5 --lambda_idt 1 --lambda_cycle 1 \
-    --dataloader_num_workers 7 \
-    --mixed_precision bf16 \
-
-"""

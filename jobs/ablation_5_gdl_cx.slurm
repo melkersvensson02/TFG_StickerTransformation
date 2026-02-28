@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=cycle_turbo_skip1
+#SBATCH --job-name=ablation_gdl_cx
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --time=24:00:00
@@ -30,16 +30,15 @@ echo "Number of GPUs available to job: $NUM_GPUS"
 
 BASE_MODEL="/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo"
 DATASET="/data/upftfg19/mfsvensson/Data_TFG/Final_unpaired"
-OUTDIR="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/baseLine_LongTrained_Cycle"
+OUTDIR="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/ablation_5_gdl_cx"
 
-RES=512
 BS=2
-MAX_STEPS=4000
+MAX_STEPS=6002
 
 echo "Checking if Python file exists:"
 ls -l src/Cyclegan_Train_turbo.py
 
-echo "Starting training with skip connections enabled (weight = 1.0)"
+echo "Starting training: Default with λ_cycle = 0.5, λ_cycle_lpips = 10.0, λ_gdl = 0.5, λ_cx = 5.0"
 
 # ----------------------------------------------------------
 # Run training
@@ -58,6 +57,15 @@ accelerate launch src/Cyclegan_Train_turbo.py \
     --val_img_prep "resize_512" \
     --viz_freq 25 \
     --vae_ignore_skip False \
-    --vae_skip_weight 1.0 --validation_num_images 75 \
+    --vae_skip_weight 1.0 \
+    --validation_num_images 75 \
+    --lambda_gan 0.5 \
+    --lambda_cycle 0.5 \
+    --lambda_cycle_lpips 10.0 \
+    --lambda_idt 0.5 \
+    --lambda_idt_lpips 1.0 \
+    --lambda_gdl 0.5 \
+    --lambda_cx 5.0 \
+    --mixed_precision "fp16" \
 
 echo "Training completed."

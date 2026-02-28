@@ -62,6 +62,10 @@ def parse_args_paired_training(input_args=None):
 
     # defualt loader of unet or from rep 
     parser.add_argument("--load_unet_default", type=bool, default=False)
+    
+    # NEW: For fine-tuning from CycleGAN checkpoint
+    parser.add_argument("--cyclegan_checkpoint", type=str, default=None,
+                    help="Path to CycleGAN .pkl checkpoint for fine-tuning (used by train_pix2pix_turbo_from_cyclegan.py)")
 
     # training details
     parser.add_argument("--output_dir", required=True)
@@ -150,6 +154,8 @@ def parse_args_unpaired_training():
     parser.add_argument("--lambda_cycle", default=1, type=float)
     parser.add_argument("--lambda_cycle_lpips", default=10.0, type=float)
     parser.add_argument("--lambda_idt_lpips", default=1.0, type=float)
+    parser.add_argument("--lambda_gdl", default=0.0, type=float)
+    parser.add_argument("--lambda_cx", default=0.0, type=float)
 
     # args for dataset and dataloader options
     parser.add_argument("--dataset_folder", required=True, type=str)
@@ -175,7 +181,7 @@ def parse_args_unpaired_training():
     parser.add_argument("--tracker_project_name", type=str, required=False)
     parser.add_argument("--validation_steps", type=int, default=500,)
     parser.add_argument("--validation_num_images", type=int, default=-1, help="Number of images to use for validation. -1 to use all images.")
-    parser.add_argument("--checkpointing_steps", type=int, default=500)
+    parser.add_argument("--checkpointing_steps", type=int, default=1000)
 
     # args for the optimization options
     parser.add_argument("--learning_rate", type=float, default=5e-6,)

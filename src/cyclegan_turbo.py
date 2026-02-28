@@ -183,6 +183,8 @@ class CycleGAN_Turbo(torch.nn.Module):
 
         vae_lora_config = LoraConfig(r=sd["rank_vae"], init_lora_weights="gaussian", target_modules=sd["vae_lora_target_modules"])
         self.vae.add_adapter(vae_lora_config, adapter_name="vae_skip")
+        self.vae.decoder.ignore_skip = False
+        self.vae.decoder.skip_weight = 1.0
         self.vae.decoder.gamma = 1
         self.vae_b2a = copy.deepcopy(self.vae)
         self.vae_enc = VAE_encode(self.vae, vae_b2a=self.vae_b2a)
