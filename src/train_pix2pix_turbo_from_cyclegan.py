@@ -25,6 +25,7 @@ from PIL import Image
 from torchvision import transforms
 from tqdm.auto import tqdm
 import json
+import wandb
 from pathlib import Path
 import torchvision.utils as vutils
 import diffusers
@@ -39,11 +40,68 @@ from pix2pix_turbo_from_cyclegan import Pix2Pix_Turbo_from_CycleGAN
 from my_utils.training_utils import parse_args_paired_training, PairedDataset
 
 
+class ContextualLoss(torch.nn.Module):
+    """
+    Multi-scale Contextual Loss using VGG16 relu3_3 + relu4_3.
+    Shares the VGG already loaded by net_lpips (no extra GPU memory).
+
+    Pass vgg_net=net_lpips.net at construction. The forward adapts to whatever
+    dtype the shared VGG is in (fp32 / bf16 / fp16), so no dtype mismatch occurs
+    after net_lpips.to(weight_dtype).
+    """
+    def __init__(self, vgg_net=None):
+        super().__init__()
+        if vgg_net is not None:
+            # lpips slices: slice1=feat[0:4], slice2=feat[4:9],
+            #               slice3=feat[9:16] (relu3_3), slice4=feat[16:23] (relu4_3)
+            self.slice3 = torch.nn.Sequential(vgg_net.slice1, vgg_net.slice2, vgg_net.slice3)
+            self.slice4 = vgg_net.slice4
+        else:
+            import torchvision.models as models
+            vgg16 = models.vgg16(pretrained=True)
+            vgg16.eval()
+            feats = vgg16.features
+            for p in vgg16.parameters():
+                p.requires_grad_(False)
+            self.slice3 = torch.nn.Sequential(*list(feats.children())[:16])
+            self.slice4 = torch.nn.Sequential(*list(feats.children())[16:23])
+
+        self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
+        self.register_buffer("std",  torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
+
+    @staticmethod
+    def _cx(feat1, feat2):
+        """Contextual loss between two feature maps (B, C, H, W)."""
+        B, C = feat1.shape[:2]
+        f1 = feat1.view(B, C, -1).permute(0, 2, 1)
+        f2 = feat2.view(B, C, -1).permute(0, 2, 1)
+        f1 = F.normalize(f1, dim=-1)
+        f2 = F.normalize(f2, dim=-1)
+        sim = torch.bmm(f1, f2.transpose(1, 2))
+        max_sim = sim.max(dim=-1).values
+        return -torch.log(max_sim.mean(dim=-1) + 1e-5).mean()
+
+    def forward(self, img1, img2):
+        """img1, img2: (B, C, H, W) in [-1, 1]. Adapts to VGG dtype automatically."""
+        vgg_dtype = next(self.slice3.parameters()).dtype
+        img1 = img1.to(dtype=vgg_dtype)
+        img2 = img2.to(dtype=vgg_dtype)
+        mean = self.mean.to(dtype=vgg_dtype)
+        std  = self.std.to(dtype=vgg_dtype)
+        img1 = (img1 * 0.5 + 0.5 - mean) / std
+        img2 = (img2 * 0.5 + 0.5 - mean) / std
+
+        f1_3 = self.slice3(img1)
+        f2_3 = self.slice3(img2)
+        f1_4 = self.slice4(f1_3)
+        f2_4 = self.slice4(f2_3)
+
+        cx3 = self._cx(f1_3, f2_3)
+        cx4 = self._cx(f1_4, f2_4)
+        return (cx3 + cx4) * 0.5
+
+
 def main(args):
-    """
-    Main training function.
-    Structure identical to train_pix2pix_turbo.py with noted differences.
-    """
     # Create output directories and log files
     os.makedirs(args.output_dir, exist_ok=True)
     JSON_FILE = os.path.join(args.output_dir, "metrics.jsonl")
@@ -62,7 +120,6 @@ def main(args):
     write_text(TEXT_FILE, f"CycleGAN checkpoint: {args.cyclegan_checkpoint}\n")
     write_text(TEXT_FILE, f"Dataset type: {args.data_set_type}\n")
     write_text(TEXT_FILE, f"Output directory: {args.output_dir}\n\n")
-    
     write_text(
         TEXT_FILE,
         f"Accelerator: mixed_precision={accelerator.mixed_precision}, "
@@ -87,11 +144,7 @@ def main(args):
         os.makedirs(os.path.join(args.output_dir, "checkpoints"), exist_ok=True)
         os.makedirs(os.path.join(args.output_dir, "eval"), exist_ok=True)
     
-    # ============================================================================
-    # DIFFERENCE: Initialize model from CycleGAN checkpoint
-    # ============================================================================
     write_text(TEXT_FILE, "Initializing model from CycleGAN checkpoint...\n")
-    
     net_pix2pix = Pix2Pix_Turbo_from_CycleGAN(
         cyclegan_checkpoint_path=args.cyclegan_checkpoint,
         lora_rank_unet=args.lora_rank_unet,
@@ -128,11 +181,8 @@ def main(args):
         torch.backends.cuda.matmul.allow_tf32 = True
         write_text(TEXT_FILE, "✓ Enabled TF32\n")
     
-    # ============================================================================
-    # Initialize discriminator (same as original - starts from scratch)
-    # ============================================================================
+
     write_text(TEXT_FILE, "\nInitializing discriminator (fresh weights)...\n")
-    
     if args.gan_disc_type == "vagan_clip":
         net_disc = vision_aided_loss.Discriminator(
             cv_type="clip", loss_type=args.gan_loss_type, device="cuda"
@@ -146,28 +196,26 @@ def main(args):
     net_disc.requires_grad_(True)
     net_disc.cv_ensemble.requires_grad_(False)  # Freeze CLIP backbone
     net_disc.train()
-    
     write_text(TEXT_FILE, "✓ Discriminator initialized\n")
-    
-    # ============================================================================
-    # Initialize perceptual loss networks (same as original)
-    # ============================================================================
+   
     write_text(TEXT_FILE, "\nInitializing perceptual loss networks...\n")
-    
     net_lpips = lpips.LPIPS(net="vgg").cuda()
     net_lpips.requires_grad_(False)
     write_text(TEXT_FILE, "✓ LPIPS (VGG) loaded\n")
+
+    # CX shares the VGG already loaded by net_lpips — no extra GPU memory.
+    # Always initialize so it is available as a validation metric regardless of lambda_cx.
+    net_cx = ContextualLoss(vgg_net=net_lpips.net).cuda()
+    net_cx.requires_grad_(False)
+    write_text(TEXT_FILE, "✓ Contextual Loss (CX) initialized (sharing VGG with LPIPS)\n")
     
     net_clip, _ = clip.load("ViT-B/32", device="cuda")
     net_clip.requires_grad_(False)
     net_clip.eval()
     write_text(TEXT_FILE, "✓ CLIP loaded\n\n")
-    
-    # ============================================================================
-    # Collect trainable parameters (same as original)
-    # ============================================================================
-    write_text(TEXT_FILE, "Collecting trainable parameters...\n")
-    
+
+
+    write_text(TEXT_FILE, "Collecting trainable parameters...\n")    
     layers_to_opt = []
     
     # UNet: LoRA layers + conv_in
@@ -193,12 +241,8 @@ def main(args):
         TEXT_FILE,
         f"✓ Trainable parameters: {sum(p.numel() for p in layers_to_opt):,}\n\n"
     )
-    
-    # ============================================================================
-    # Create optimizers and schedulers (same as original)
-    # ============================================================================
-    write_text(TEXT_FILE, "Creating optimizers...\n")
-    
+
+    write_text(TEXT_FILE, "Creating optimizers...\n")    
     # Generator (UNet + VAE) optimizer
     optimizer = torch.optim.AdamW(
         layers_to_opt,
@@ -234,14 +278,9 @@ def main(args):
         num_cycles=args.lr_num_cycles,
         power=args.lr_power,
     )
-    
     write_text(TEXT_FILE, "✓ Optimizers created\n\n")
-    
-    # ============================================================================
-    # DIFFERENCE: Create datasets with data_set_type flag
-    # ============================================================================
-    write_text(TEXT_FILE, f"Creating datasets (type: {args.data_set_type})...\n")
-    
+
+    write_text(TEXT_FILE, f"Creating datasets (type: {args.data_set_type})...\n")    
     dataset_train = PairedDataset(
         dataset_folder=args.dataset_folder,
         image_prep=args.train_image_prep,
@@ -282,7 +321,6 @@ def main(args):
         f"✓ Train dataset: {len(dataset_train)} images\n"
         f"✓ Val dataset: {len(dataset_val)} images\n\n"
     )
-    
     # ============================================================================
     # Save debug samples from dataloaders (same as original)
     # ============================================================================
@@ -300,12 +338,10 @@ def main(args):
     save_debug_batch(batch_val, debug_dir, prefix="test_batch2", max_images=10)
     
     write_text(TEXT_FILE, "✓ Debug samples saved\n\n")
-    
     # ============================================================================
     # Prepare models with accelerator (same as original)
     # ============================================================================
     write_text(TEXT_FILE, "Preparing models with accelerator...\n")
-    
     (
         net_pix2pix,
         net_disc,
@@ -323,7 +359,6 @@ def main(args):
         lr_scheduler,
         lr_scheduler_disc,
     )
-    
     net_clip, net_lpips = accelerator.prepare(net_clip, net_lpips)
     
     # CLIP normalization transform
@@ -344,15 +379,14 @@ def main(args):
     net_disc.to(dtype=weight_dtype)
     net_lpips.to(dtype=weight_dtype)
     net_clip.to(dtype=weight_dtype)
+    # net_cx shares VGG modules with net_lpips — already moved above.
+    # CX forward detects VGG dtype dynamically, so no explicit cast needed.
     
     write_text(TEXT_FILE, f"✓ Models prepared (dtype: {weight_dtype})\n\n")
-    
-    # ============================================================================
-    # Initialize experiment tracking (same as original)
-    # ============================================================================
     if accelerator.is_main_process:
         tracker_config = dict(vars(args))
-        accelerator.init_trackers(args.tracker_project_name, config=tracker_config)
+        # IMP: cluster is offline so we need to set wandb mode to offline to avoid hanging
+        accelerator.init_trackers(args.tracker_project_name, config=tracker_config,init_kwargs={"wandb": {"mode": "offline"}} )
         write_text(TEXT_FILE, "✓ Tracker initialized\n")
     
     # Progress bar
@@ -368,15 +402,11 @@ def main(args):
         if "attn" in name:
             module.fused_attn = False
     
-    # ============================================================================
-    # Compute reference FID statistics (same as original)
-    # ============================================================================
+
     if accelerator.is_main_process and args.track_val_fid:
         write_text(TEXT_FILE, "\nComputing reference FID statistics...\n")
-        
         all_ref_images = sorted(os.listdir(os.path.join(args.dataset_folder, "test_B")))
         ref_subset = all_ref_images[: args.num_samples_eval]
-        
         feat_model = build_feature_extractor("clean", "cuda", use_dataparallel=False)
         
         def fn_transform(x):
@@ -408,16 +438,9 @@ def main(args):
             f"✓ Reference FID stats computed: mu={ref_stats[0].shape}, sigma={ref_stats[1].shape}\n\n"
         )
     
-    # ============================================================================
-    # Training loop (same as original)
-    # ============================================================================
-    write_text(TEXT_FILE, "="*80 + "\n")
-    write_text(TEXT_FILE, "STARTING TRAINING\n")
-    write_text(TEXT_FILE, "="*80 + "\n\n")
     
     global_step = 0
-    train_loss_buffer = {"l2": [], "lpips": [], "clipsim": [], "G": [], "D": []}
-    
+    train_loss_buffer = {"l2": [], "lpips": [], "cx": [], "clipsim": [], "G": [], "D": []}
     for epoch in range(0, args.num_training_epochs):
         for step, batch in enumerate(dl_train):
             l_acc = [net_pix2pix, net_disc]
@@ -429,28 +452,26 @@ def main(args):
                 x_src = batch["conditioning_pixel_values"]
                 x_tgt = batch["output_pixel_values"]
                 B, C, H, W = x_src.shape
-                
-                # ================================================================
-                # Forward pass through generator
-                # ================================================================
+                # one pass through the generator for reconstruction loss
                 x_tgt_pred = net_pix2pix(
                     x_src, prompt_tokens=batch["input_ids"], deterministic=True
                 )
-                
-                # ================================================================
-                # DIFFERENCE: Standard L2 loss (not weighted)
-                # Weighted loss doesn't help with domain displacement
-                # ================================================================
                 loss_l2 = F.mse_loss(x_tgt_pred, x_tgt) * args.lambda_l2
-                
+
                 # LPIPS perceptual loss (same as original)
                 loss_lpips = (
                     net_lpips(x_tgt_pred.float(), x_tgt.float()).mean()
                     * args.lambda_lpips
                 )
-                
+
                 loss = loss_l2 + loss_lpips
-                
+
+                # Contextual loss (CX) — replaces or supplements LPIPS
+                loss_cx = torch.tensor(0.0, device=x_tgt_pred.device)
+                if args.lambda_cx > 0:
+                    loss_cx = net_cx(x_tgt_pred, x_tgt) * args.lambda_cx
+                    loss = loss + loss_cx
+
                 # CLIP similarity loss (same as original)
                 if args.lambda_clipsim > 0:
                     x_tgt_pred_renorm = t_clip_renorm(x_tgt_pred * 0.5 + 0.5)
@@ -474,10 +495,8 @@ def main(args):
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad(set_to_none=args.set_grads_to_none)
-                
-                # ================================================================
-                # Generator adversarial loss (same as original)
-                # ================================================================
+                # why again ? because we need to do a separate backward pass for the GAN loss, so we can't retain the graph here. 
+                # We will do another forward pass through the generator to get the predicted images for the discriminator loss, so we need to free the graph after this backward.
                 x_tgt_pred = net_pix2pix(
                     x_src, prompt_tokens=batch["input_ids"], deterministic=True
                 )
@@ -489,10 +508,6 @@ def main(args):
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad(set_to_none=args.set_grads_to_none)
-                
-                # ================================================================
-                # Discriminator loss (same as original)
-                # ================================================================
                 # Real images
                 lossD_real = (
                     net_disc(x_tgt.detach(), for_real=True).mean() * args.lambda_gan
@@ -520,10 +535,7 @@ def main(args):
                 optimizer_disc.zero_grad(set_to_none=args.set_grads_to_none)
                 
                 lossD = lossD_real + lossD_fake
-            
-            # ================================================================
-            # Logging and checkpointing (same as original)
-            # ================================================================
+
             if accelerator.sync_gradients:
                 progress_bar.update(1)
                 global_step += 1
@@ -534,20 +546,33 @@ def main(args):
                     logs["lossD"] = lossD.detach().item()
                     logs["loss_l2"] = loss_l2.detach().item()
                     logs["loss_lpips"] = loss_lpips.detach().item()
+                    if args.lambda_cx > 0:
+                        logs["loss_cx"] = loss_cx.detach().item()
                     if args.lambda_clipsim > 0:
                         logs["loss_clipsim"] = loss_clipsim.detach().item()
                     progress_bar.set_postfix(**logs)
-                    
+
                     # Buffer losses for averaging
                     train_loss_buffer["l2"].append(loss_l2.detach().item())
                     train_loss_buffer["lpips"].append(loss_lpips.detach().item())
+                    if args.lambda_cx > 0:
+                        train_loss_buffer["cx"].append(loss_cx.detach().item())
                     if args.lambda_clipsim > 0:
                         train_loss_buffer["clipsim"].append(
                             loss_clipsim.detach().item()
                         )
                     train_loss_buffer["G"].append(lossG.detach().item())
                     train_loss_buffer["D"].append(lossD.detach().item())
-                    
+                    # viz some images
+                    if global_step % args.viz_freq == 1:
+                        log_dict = {
+                            "train/source": [wandb.Image(x_src[idx].float().detach().cpu(), caption=f"idx={idx}") for idx in range(B)],
+                            "train/target": [wandb.Image(x_tgt[idx].float().detach().cpu(), caption=f"idx={idx}") for idx in range(B)],
+                            "train/model_output": [wandb.Image(x_tgt_pred[idx].float().detach().cpu(), caption=f"idx={idx}") for idx in range(B)],
+                        }
+                        for k in log_dict:
+                            logs[k] = log_dict[k]
+
                     # Save checkpoint
                     if global_step % args.checkpointing_steps == 1 and global_step != 1:
                         outf = os.path.join(
@@ -556,13 +581,10 @@ def main(args):
                             f"model_step_{global_step}.pkl",
                         )
                         accelerator.unwrap_model(net_pix2pix).save_model(outf)
-                    
-                    # ========================================================
-                    # Validation (same as original)
-                    # ========================================================
+
                     if global_step % args.eval_freq == 1:
-                        l_l2, l_lpips, l_clipsim = [], [], []
-                        
+                        l_l2, l_lpips, l_cx, l_clipsim, l_gan = [], [], [], [], []
+
                         if args.track_val_fid:
                             eval_folder = os.path.join(
                                 args.output_dir, "eval", f"fid_{global_step}"
@@ -592,7 +614,8 @@ def main(args):
                                 loss_lpips = net_lpips(
                                     x_tgt_pred.float(), x_tgt.float()
                                 ).mean()
-                                
+                                loss_cx_val = net_cx(x_tgt_pred, x_tgt)
+
                                 x_tgt_pred_renorm = t_clip_renorm(
                                     x_tgt_pred * 0.5 + 0.5
                                 )
@@ -608,9 +631,12 @@ def main(args):
                                 clipsim, _ = net_clip(x_tgt_pred_renorm, caption_tokens)
                                 clipsim = clipsim.mean()
                                 
+                                lossG_val = net_disc(x_tgt_pred, for_G=True).mean()
                                 l_l2.append(loss_l2.item())
                                 l_lpips.append(loss_lpips.item())
+                                l_cx.append(loss_cx_val.item())
                                 l_clipsim.append(clipsim.item())
+                                l_gan.append(lossG_val.item())
                                 
                                 # Save debug output
                                 debug_dir = os.path.join(
@@ -662,7 +688,9 @@ def main(args):
                         
                         logs["val/l2"] = np.mean(l_l2)
                         logs["val/lpips"] = np.mean(l_lpips)
+                        logs["val/cx"] = np.mean(l_cx)
                         logs["val/clipsim"] = np.mean(l_clipsim)
+                        logs["val/G"] = np.mean(l_gan)
                         
                         gc.collect()
                         torch.cuda.empty_cache()
@@ -675,6 +703,10 @@ def main(args):
                             logs["train_avg_lpips"] = sum(train_loss_buffer["lpips"]) / len(
                                 train_loss_buffer["lpips"]
                             )
+                            if args.lambda_cx > 0 and train_loss_buffer["cx"]:
+                                logs["train_avg_cx"] = sum(train_loss_buffer["cx"]) / len(
+                                    train_loss_buffer["cx"]
+                                )
                             logs["train_avg_G"] = sum(train_loss_buffer["G"]) / len(
                                 train_loss_buffer["G"]
                             )
@@ -711,11 +743,13 @@ def write_json_metrics(file_path, step, logs, args):
     weight_by_key = {
         "loss_l2": args.lambda_l2,
         "loss_lpips": args.lambda_lpips,
+        "loss_cx": args.lambda_cx,
         "loss_clipsim": args.lambda_clipsim,
         "lossG": args.lambda_gan,
         "lossD": args.lambda_gan,
         "val/l2": args.lambda_l2,
         "val/lpips": args.lambda_lpips,
+        "val/cx": 1.0,  # always log CX val metric (it's always computed)
         "val/clipsim": args.lambda_clipsim,
     }
     

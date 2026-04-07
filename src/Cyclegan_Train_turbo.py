@@ -11,7 +11,7 @@ import numpy as np
 from accelerate import Accelerator
 from accelerate.utils import set_seed
 from PIL import Image
-from torchvision import transforms
+from torchvision import transforms, models
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer, CLIPTextModel
 from diffusers.optimization import get_scheduler
@@ -72,74 +72,84 @@ def apply_mask_to_image(img, mask, background_value=1.0):
     masked_img = img * mask + (1 - mask) * background_value
     return masked_img
 
-class ContextualLoss:
+class ContextualLoss(torch.nn.Module):
     """
-    Contextual Loss using VGG relu3_3 features.
-    Measures patch-wise cosine similarity with max-pooling over patches.
-    
-    FIXED: VGG16 kept in float32 for numerical stability.
-    Input images are converted to float32, processed, then results converted back.
+    Multi-scale Contextual Loss using VGG16 relu3_3 + relu4_3.
+
+    VGG16 layer indices:
+      relu3_3 = features[15]  → features[:16]  (256ch, 1/8 res)  — edge/texture
+      relu4_3 = features[22]  → features[16:23] (512ch, 1/16 res) — semantic/shape
+
+    Both scales are averaged, giving structural preservation at two levels of
+    abstraction — important for photo→sticker where both contour accuracy and
+    semantic identity matter.
+
+    CRITICAL: Do NOT use torch.no_grad() around VGG feature extraction.
+    VGG weights are frozen (requires_grad=False), so they will not update,
+    but gradients must flow THROUGH the VGG ops to reach the generator output
+    (cyc_rec_a_masked). Using no_grad() would make CX a zero-gradient constant.
+
+    Pass vgg_net=net_lpips.net to reuse the lpips VGG and avoid loading a second
+    VGG16 to GPU. The lpips VGG has slice1..slice5; we chain slice1+slice2+slice3
+    to get cumulative relu3_3 features, then use slice4 for relu4_3.
     """
-    def __init__(self, device="cuda", dtype=torch.float32):
-        self.device = device
-        self.dtype = dtype  # FIXED: Store target dtype for mixed precision
-        # Load pretrained VGG16
-        import torchvision.models as models
-        # FIXED: Explicitly keep VGG in float32 for stability
-        vgg16 = models.vgg16(pretrained=True).to(device).to(torch.float32)
-        vgg16.eval()
-        for param in vgg16.parameters():
-            param.requires_grad = False
-        
-        # Extract up to relu3_3 (layer 16 in VGG16 features)
-        self.features_extractor = torch.nn.Sequential(*list(vgg16.features.children())[:16]).to(device).to(torch.float32)
-        self.features_extractor.eval()
-    
+    def __init__(self, vgg_net=None):
+        super().__init__()
+        if vgg_net is not None:
+            # Reuse lpips's internal VGG — no extra GPU memory
+            # lpips slices: slice1=feat[0:4], slice2=feat[4:9],
+            #               slice3=feat[9:16] (relu3_3), slice4=feat[16:23] (relu4_3)
+            self.slice3 = torch.nn.Sequential(vgg_net.slice1, vgg_net.slice2, vgg_net.slice3)
+            self.slice4 = vgg_net.slice4
+        else:
+            vgg16 = models.vgg16(pretrained=True)
+            vgg16.eval()
+            feats = vgg16.features
+            for p in vgg16.parameters():
+                p.requires_grad_(False)
+            # relu3_3: features[0:16]
+            self.slice3 = torch.nn.Sequential(*list(feats.children())[:16])
+            # relu4_3: features[16:23]
+            self.slice4 = torch.nn.Sequential(*list(feats.children())[16:23])
+
+        self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
+        self.register_buffer("std",  torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
+
+    @staticmethod
+    def _cx(feat1, feat2):
+        """Contextual loss between two feature maps (B, C, H, W)."""
+        B, C = feat1.shape[:2]
+        # (B, N, C) — one vector per spatial position
+        f1 = feat1.view(B, C, -1).permute(0, 2, 1)
+        f2 = feat2.view(B, C, -1).permute(0, 2, 1)
+        f1 = F.normalize(f1, dim=-1)
+        f2 = F.normalize(f2, dim=-1)
+        # cosine sim matrix (B, N, M)
+        sim = torch.bmm(f1, f2.transpose(1, 2))
+        max_sim = sim.max(dim=-1).values          # (B, N)
+        return -torch.log(max_sim.mean(dim=-1) + 1e-5).mean()
+
     def forward(self, img1, img2):
         """
-        Compute contextual loss between img1 and img2.
-        img1, img2: tensors of shape (B, C, H, W) with values in [-1, 1]
-        
-        FIXED: Convert inputs to float32 for VGG processing to handle mixed precision.
+        img1, img2: (B, C, H, W) in [-1, 1].
+        Inputs are cast to float32 for VGG stability but gradients still flow
+        back through the float32 ops to img1/img2.
         """
-        # FIXED: Convert to float32 for VGG processing (numerical stability)
         img1 = img1.float()
         img2 = img2.float()
-        
-        # Normalize to [0, 1] and then to ImageNet stats
-        img1_norm = (img1 + 1) / 2  # [-1, 1] -> [0, 1]
-        img2_norm = (img2 + 1) / 2
-        
-        # FIXED: Create tensors in float32 explicitly
-        mean = torch.tensor([0.485, 0.456, 0.406], device=self.device, dtype=torch.float32).view(1, 3, 1, 1)
-        std = torch.tensor([0.229, 0.224, 0.225], device=self.device, dtype=torch.float32).view(1, 3, 1, 1)
-        img1_norm = (img1_norm - mean) / std
-        img2_norm = (img2_norm - mean) / std
-        
-        with torch.no_grad():
-            feat1 = self.features_extractor(img1_norm)  # (B, 256, H/8, W/8)
-            feat2 = self.features_extractor(img2_norm)
-        
-        # Reshape to (B, C, -1) for patch-wise operations
-        B, C, H, W = feat1.shape
-        feat1_patches = feat1.view(B, C, -1)  # (B, 256, N_patches)
-        feat2_patches = feat2.view(B, C, -1)
-        
-        # Normalize for cosine similarity
-        feat1_patches = F.normalize(feat1_patches, dim=1)  # (B, 256, N_patches)
-        feat2_patches = F.normalize(feat2_patches, dim=1)
-        
-        # Compute cosine similarity matrix (B, N_patches, N_patches)
-        # sim[b, i, j] = cosine similarity between patch i in feat1 and patch j in feat2
-        sim = torch.bmm(feat1_patches.permute(0, 2, 1), feat2_patches)  # (B, N_patches, N_patches)
-        
-        # Max-pooling: for each patch in feat1, find best match in feat2
-        max_sim_per_patch = sim.max(dim=2)[0]  # (B, N_patches)
-        
-        # Contextual loss: negative log of average max similarity
-        cx_loss = -torch.log(max_sim_per_patch.mean() + 1e-5)
-        
-        return cx_loss
+        img1 = (img1 * 0.5 + 0.5 - self.mean) / self.std
+        img2 = (img2 * 0.5 + 0.5 - self.mean) / self.std
+
+        # relu3_3 features — gradient flows through here to img1/img2
+        f1_3 = self.slice3(img1)
+        f2_3 = self.slice3(img2)
+        # relu4_3 features built on top of relu3_3
+        f1_4 = self.slice4(f1_3)
+        f2_4 = self.slice4(f2_3)
+
+        cx3 = self._cx(f1_3, f2_3)
+        cx4 = self._cx(f1_4, f2_4)
+        return (cx3 + cx4) * 0.5
 
 
 def main(args):
@@ -310,12 +320,12 @@ def main(args):
     net_lpips.requires_grad_(False)
     write_text(TEXT_FILE, f"LPIPS model initialized \n")
     
-    # Initialize Contextual Loss if needed
-    net_cx = None
-    if args.lambda_cx > 0:
-        # FIXED: Pass dtype parameter for mixed precision handling
-        net_cx = ContextualLoss(device="cuda", dtype=weight_dtype)
-        write_text(TEXT_FILE, f"Contextual Loss model initialized \n")
+    # Always initialize CX — reuses net_lpips's VGG (no extra GPU memory).
+    # lambda_cx controls whether CX enters the training loss;
+    # net_cx is always available for validation metrics regardless.
+    net_cx = ContextualLoss(vgg_net=net_lpips.net).cuda().to(torch.float32)
+    net_cx.requires_grad_(False)
+    write_text(TEXT_FILE, f"Contextual Loss initialized (sharing VGG with LPIPS, relu3_3 + relu4_3)\n")
     
     # Precompute the fixed text embeddings for the fixed captions
     fixed_a2b_tokens = tokenizer(fixed_caption_tgt, max_length=tokenizer.model_max_length, padding="max_length", truncation=True, return_tensors="pt").input_ids[0]
@@ -517,6 +527,7 @@ def main(args):
             
             logs["cycle_a"] = loss_cycle_a.detach().item()
             logs["cycle_b"] = loss_cycle_b.detach().item()
+            logs["loss_cycle"] = logs["cycle_a"] + logs["cycle_b"]  # LCycle = combined reconstruction loss
             logs["gan_a"] = loss_gan_a.detach().item()
             logs["gan_b"] = loss_gan_b.detach().item()
             logs["disc_a"] = loss_D_A_fake.detach().item() + loss_D_A_real.detach().item()
@@ -600,17 +611,23 @@ def main(args):
                         gc.collect()
                         torch.cuda.empty_cache()
 
-                    # compute val FID and DINO-Struct scores
+                    # compute val FID, DINO-Struct, cycle/idt/gan on test set
                     if global_step % args.validation_steps == 1:
                         _timesteps = torch.tensor([noise_scheduler_1step.config.num_train_timesteps - 1] * 1, device="cuda").long()
                         net_dino = DinoStructureLoss()
+                        # Pre-compute single-image validation embeddings from the base tensors
+                        # (shape (1, seq, dim) — no batch repeat needed)
+                        _emb_a2b = fixed_a2b_emb_base.to(dtype=weight_dtype)
+                        _emb_b2a = fixed_b2a_emb_base.to(dtype=weight_dtype)
                         """
                         Evaluate "A->B"
                         """
                         fid_output_dir = os.path.join(args.output_dir, f"fid-{global_step}/samples_a2b")
                         os.makedirs(fid_output_dir, exist_ok=True)
                         l_dino_scores_a2b = []
-                        # get val input images from domain a
+                        l_cycle_a2b = []   # L1+LPIPS of A→B→A_hat vs A
+                        l_idt_a = []       # L1 of G_b2a(A) vs A  (identity)
+                        l_gan_a = []       # discriminator score on fake_B
                         write_text(TEXT_FILE, f"Number of images to be processed {args.validation_num_images}")
                         for idx, input_img_path in enumerate(tqdm(l_images_src_test)):
                             if idx > args.validation_num_images and args.validation_num_images > 0:
@@ -619,32 +636,40 @@ def main(args):
                             outf = os.path.join(fid_output_dir, f"{orig_name}_fid_{global_step}.png")
                             with torch.no_grad():
                                 input_img = T_val(Image.open(input_img_path).convert("RGB"))
-                                #print(f"Input PIL size: {input_img.size}")
                                 img_a = transforms.ToTensor()(input_img)
                                 img_a = transforms.Normalize([0.5], [0.5])(img_a).unsqueeze(0).cuda().to(dtype=weight_dtype)
-                                #print(f"img_a tensor shape: {img_a.shape}")
                                 eval_fake_b = CycleGAN_Turbo.forward_with_networks(img_a, "a2b", eval_vae_enc, eval_unet,
-                                    eval_vae_dec, noise_scheduler_1step, _timesteps, fixed_a2b_emb[0:1])
-                                #print(f"eval_fake_b tensor shape: {eval_fake_b.shape}")
-                                # FIXED: Convert to float32 and clamp before ToPILImage for mixed precision compatibility
+                                    eval_vae_dec, noise_scheduler_1step, _timesteps, _emb_a2b)
+                                # Convert to float32 and clamp before ToPILImage
                                 eval_fake_b_pil = transforms.ToPILImage()((eval_fake_b[0].float() * 0.5 + 0.5).clamp(0, 1))
-                                #print(f"Output PIL size: {eval_fake_b_pil.size}")
-                                # Resize to match input ONLY for metrics
+                                # Resize to match input ONLY for DINO metrics
                                 eval_fake_b_pil_for_metrics = eval_fake_b_pil.resize(input_img.size, Image.LANCZOS)
                                 eval_fake_b_pil.save(outf)
-                                # FIXED: Check if image is all black (catastrophic failure detection)
+                                # Check if image is all black (catastrophic failure detection)
                                 img_array = np.array(eval_fake_b_pil)
                                 mean_intensity = img_array.mean()
-                                if mean_intensity < 1.0:  # Essentially black image (0-255 scale)
+                                if mean_intensity < 1.0:
                                     write_text(TEXT_FILE, f"\nERROR: FID image is all black at step {global_step}, file {outf}\n")
                                     write_text(TEXT_FILE, f"  Mean intensity: {mean_intensity}\n")
                                     write_text(TEXT_FILE, f"  eval_fake_b stats: min={eval_fake_b.min().item()}, max={eval_fake_b.max().item()}, mean={eval_fake_b.mean().item()}\n")
                                     raise RuntimeError(f"EXECUTION STOPPED: FID images are all black at step {global_step}. Check model outputs and dtype handling.")
-                                a = net_dino.preprocess(input_img).unsqueeze(0).cuda()
-                                b = net_dino.preprocess(eval_fake_b_pil_for_metrics).unsqueeze(0).cuda()
-                                #print(f"DINO a shape: {a.shape}, DINO b shape: {b.shape}")
-                                dino_ssim = net_dino.calculate_global_ssim_loss(a, b).item()
+                                a_dino = net_dino.preprocess(input_img).unsqueeze(0).cuda()
+                                b_dino = net_dino.preprocess(eval_fake_b_pil_for_metrics).unsqueeze(0).cuda()
+                                dino_ssim = net_dino.calculate_global_ssim_loss(a_dino, b_dino).item()
                                 l_dino_scores_a2b.append(dino_ssim)
+                                # Cycle: A→B→A_hat, measure reconstruction error vs original A
+                                eval_cyc_rec_a = CycleGAN_Turbo.forward_with_networks(eval_fake_b, "b2a", eval_vae_enc,
+                                    eval_unet, eval_vae_dec, noise_scheduler_1step, _timesteps, _emb_b2a)
+                                l_cycle_a2b.append(
+                                    (F.l1_loss(eval_cyc_rec_a.float(), img_a.float())
+                                     + net_lpips(eval_cyc_rec_a.float(), img_a.float()).mean()).item()
+                                )
+                                # Identity: G_b2a(A) should ≈ A
+                                eval_idt_a = CycleGAN_Turbo.forward_with_networks(img_a, "b2a", eval_vae_enc,
+                                    eval_unet, eval_vae_dec, noise_scheduler_1step, _timesteps, _emb_b2a)
+                                l_idt_a.append(F.l1_loss(eval_idt_a.float(), img_a.float()).item())
+                                # GAN: how convincing is fake_B to the discriminator
+                                l_gan_a.append(net_disc_a(eval_fake_b, for_G=True).mean().item())
                         dino_score_a2b = np.mean(l_dino_scores_a2b)
                         gen_features = get_folder_features(fid_output_dir, model=feat_model, num_workers=0, num=None,
                             shuffle=False, seed=0, batch_size=8, device=torch.device("cuda"),
@@ -652,7 +677,6 @@ def main(args):
                             custom_image_tranform=None)
                         ed_mu, ed_sigma = np.mean(gen_features, axis=0), np.cov(gen_features, rowvar=False)
                         score_fid_a2b = frechet_distance(a2b_ref_mu, a2b_ref_sigma, ed_mu, ed_sigma)
-                        #print(f"step={global_step}, fid(a2b)={score_fid_a2b:.2f}, dino(a2b)={dino_score_a2b:.3f}")
 
                         """
                         compute FID for "B->A"
@@ -660,7 +684,9 @@ def main(args):
                         fid_output_dir = os.path.join(args.output_dir, f"fid-{global_step}/samples_b2a")
                         os.makedirs(fid_output_dir, exist_ok=True)
                         l_dino_scores_b2a = []
-                        # get val input images from domain b
+                        l_cycle_b2a = []   # L1+LPIPS of B→A→B_hat vs B
+                        l_idt_b = []       # L1 of G_a2b(B) vs B  (identity)
+                        l_gan_b = []       # discriminator score on fake_A
                         for idx, input_img_path in enumerate(tqdm(l_images_tgt_test)):
                             if idx > args.validation_num_images and args.validation_num_images > 0:
                                 break
@@ -671,22 +697,35 @@ def main(args):
                                 img_b = transforms.ToTensor()(input_img)
                                 img_b = transforms.Normalize([0.5], [0.5])(img_b).unsqueeze(0).cuda().to(dtype=weight_dtype)
                                 eval_fake_a = CycleGAN_Turbo.forward_with_networks(img_b, "b2a", eval_vae_enc, eval_unet,
-                                    eval_vae_dec, noise_scheduler_1step, _timesteps, fixed_b2a_emb[0:1])
-                                # FIXED: Convert to float32 and clamp before ToPILImage for mixed precision compatibility
+                                    eval_vae_dec, noise_scheduler_1step, _timesteps, _emb_b2a)
+                                # Convert to float32 and clamp before ToPILImage
                                 eval_fake_a_pil = transforms.ToPILImage()((eval_fake_a[0].float() * 0.5 + 0.5).clamp(0, 1))
                                 eval_fake_a_pil.save(outf)
-                                # FIXED: Check if image is all black (catastrophic failure detection)
+                                # Check if image is all black
                                 img_array = np.array(eval_fake_a_pil)
                                 mean_intensity = img_array.mean()
-                                if mean_intensity < 1.0:  # Essentially black image (0-255 scale)
+                                if mean_intensity < 1.0:
                                     write_text(TEXT_FILE, f"\nERROR: FID image is all black at step {global_step}, file {outf}\n")
                                     write_text(TEXT_FILE, f"  Mean intensity: {mean_intensity}\n")
                                     write_text(TEXT_FILE, f"  eval_fake_a stats: min={eval_fake_a.min().item()}, max={eval_fake_a.max().item()}, mean={eval_fake_a.mean().item()}\n")
                                     raise RuntimeError(f"EXECUTION STOPPED: FID images are all black at step {global_step}. Check model outputs and dtype handling.")
-                                a = net_dino.preprocess(input_img).unsqueeze(0).cuda()
-                                b = net_dino.preprocess(eval_fake_a_pil).unsqueeze(0).cuda()
-                                dino_ssim = net_dino.calculate_global_ssim_loss(a, b).item()
+                                a_dino = net_dino.preprocess(input_img).unsqueeze(0).cuda()
+                                b_dino = net_dino.preprocess(eval_fake_a_pil).unsqueeze(0).cuda()
+                                dino_ssim = net_dino.calculate_global_ssim_loss(a_dino, b_dino).item()
                                 l_dino_scores_b2a.append(dino_ssim)
+                                # Cycle: B→A→B_hat, measure reconstruction error vs original B
+                                eval_cyc_rec_b = CycleGAN_Turbo.forward_with_networks(eval_fake_a, "a2b", eval_vae_enc,
+                                    eval_unet, eval_vae_dec, noise_scheduler_1step, _timesteps, _emb_a2b)
+                                l_cycle_b2a.append(
+                                    (F.l1_loss(eval_cyc_rec_b.float(), img_b.float())
+                                     + net_lpips(eval_cyc_rec_b.float(), img_b.float()).mean()).item()
+                                )
+                                # Identity: G_a2b(B) should ≈ B
+                                eval_idt_b = CycleGAN_Turbo.forward_with_networks(img_b, "a2b", eval_vae_enc,
+                                    eval_unet, eval_vae_dec, noise_scheduler_1step, _timesteps, _emb_a2b)
+                                l_idt_b.append(F.l1_loss(eval_idt_b.float(), img_b.float()).item())
+                                # GAN: how convincing is fake_A to the discriminator
+                                l_gan_b.append(net_disc_b(eval_fake_a, for_G=True).mean().item())
                         dino_score_b2a = np.mean(l_dino_scores_b2a)
                         gen_features = get_folder_features(fid_output_dir, model=feat_model, num_workers=0, num=None,
                             shuffle=False, seed=0, batch_size=8, device=torch.device("cuda"),
@@ -694,11 +733,15 @@ def main(args):
                             custom_image_tranform=None)
                         ed_mu, ed_sigma = np.mean(gen_features, axis=0), np.cov(gen_features, rowvar=False)
                         score_fid_b2a = frechet_distance(b2a_ref_mu, b2a_ref_sigma, ed_mu, ed_sigma)
-                        #print(f"step={global_step}, fid(b2a)={score_fid_b2a}, dino(b2a)={dino_score_b2a:.3f}")
                         logs["val/fid_a2b"], logs["val/fid_b2a"] = score_fid_a2b, score_fid_b2a
                         logs["val/dino_struct_a2b"], logs["val/dino_struct_b2a"] = dino_score_a2b, dino_score_b2a
+                        logs["val/cycle_a2b"] = np.mean(l_cycle_a2b)   # L1+LPIPS A→B→A on test_A
+                        logs["val/cycle_b2a"] = np.mean(l_cycle_b2a)   # L1+LPIPS B→A→B on test_B
+                        logs["val/idt_a"]     = np.mean(l_idt_a)        # identity L1 on test_A
+                        logs["val/idt_b"]     = np.mean(l_idt_b)        # identity L1 on test_B
+                        logs["val/gan_a"]     = np.mean(l_gan_a)        # GAN score on fake_B
+                        logs["val/gan_b"]     = np.mean(l_gan_b)        # GAN score on fake_A
                         del net_dino  # free up memory
-                        # Save the parameters 
                         write_json_metrics(JSON_FILE, global_step, logs)
                         write_text(TEXT_FILE, f"Step {global_step}: wrote metrics")
 

@@ -187,7 +187,9 @@ class CycleGAN_Turbo(torch.nn.Module):
         self.vae.decoder.skip_weight = 1.0
         self.vae.decoder.gamma = 1
         self.vae_b2a = copy.deepcopy(self.vae)
+        # we copy both the encoders into a class 
         self.vae_enc = VAE_encode(self.vae, vae_b2a=self.vae_b2a)
+        # the key here is that sd_vae_enc contains the weights for both the a2b and b2a encoders!
         self.vae_enc.load_state_dict(sd["sd_vae_enc"])
         self.vae_dec = VAE_decode(self.vae, vae_b2a=self.vae_b2a)
         self.vae_dec.load_state_dict(sd["sd_vae_dec"])

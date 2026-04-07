@@ -1,0 +1,42 @@
+#!/bin/bash
+#SBATCH --job-name=Baseline_Sem
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+#SBATCH --time=12:00:00
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
+
+cd /home/mfsvensson/TFG_reps/Old-img2img-turbo
+echo "Running from PWD: $(pwd)"
+
+module load conda
+source activate Pined-img2img-turbo-fixed
+
+echo "Running on host: $(hostname)"
+echo "CUDA devices available:"
+nvidia-smi
+
+echo "GPUs allocated to this job: $CUDA_VISIBLE_DEVICES"
+NUM_GPUS=$(echo $CUDA_VISIBLE_DEVICES | tr ',' '\n' | wc -l)
+echo "Number of GPUs available to job: $NUM_GPUS"
+
+BASE_MODEL="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/many_runs_bs_6/checkpoints/model_6001.pkl"
+DATASET="/data/upftfg19/mfsvensson/Data_TFG/NewPairedDatasetSemantic"
+OUTDIR="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/New_FineTuned_Baseline_Semantic"
+
+echo "Checking if Python file exists:"
+ls -l src/train_pix2pix_turbo_from_cyclegan.py
+
+# Full loss baseline: l2=1 + lpips=5 + clipsim=5 + gan=0.5 (all defaults)
+accelerate launch src/train_pix2pix_turbo_from_cyclegan.py \
+    --cyclegan_checkpoint="$BASE_MODEL" \
+    --output_dir="$OUTDIR" \
+    --dataset_folder="$DATASET" \
+    --data_set_type="original" \
+    --resolution=512 \
+    --train_batch_size=1 \
+    --enable_xformers_memory_efficient_attention \
+    --track_val_fid \
+    --max_train_steps=5002 \
+    --checkpointing_steps=1000 \
+    --eval_freq=500
