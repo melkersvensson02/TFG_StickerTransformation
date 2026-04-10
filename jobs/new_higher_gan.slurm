@@ -26,7 +26,7 @@ OUTDIR="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/new_higher_gan"
 # Note: ablation_1_higher_gan.slurm also tested lambda_gan=2 but with old code
 # (CX gradient bug, no shared VGG, old validation metrics). This re-runs it cleanly.
 
-accelerate launch src/Cyclegan_Train_turbo.py \
+accelerate launch src/cyclegan_train_turbo.py \
     --pretrained_model_name_or_path "${BASE_MODEL}" \
     --output_dir "${OUTDIR}" \
     --dataset_folder "${DATASET}" \

@@ -36,7 +36,7 @@ BS=2
 MAX_STEPS=6002
 
 echo "Checking if Python file exists:"
-ls -l src/Cyclegan_Train_turbo.py
+ls -l src/cyclegan_train_turbo.py
 
 echo "Starting training: Default with λ_cycle = 0.5, λ_cycle_lpips = 10.0, λ_gdl = 0.5, λ_cx = 5.0"
 
@@ -44,7 +44,7 @@ echo "Starting training: Default with λ_cycle = 0.5, λ_cycle_lpips = 10.0, λ_
 # Run training
 # ----------------------------------------------------------
 
-accelerate launch src/Cyclegan_Train_turbo.py \
+accelerate launch src/cyclegan_train_turbo.py \
     --pretrained_model_name_or_path "${BASE_MODEL}" \
     --output_dir "${OUTDIR}" \
     --dataset_folder "${DATASET}" \

@@ -1,3 +1,7 @@
+# Runs inference on a single image using a trained Pix2Pix_Turbo model.
+# Applies Canny edge detection as conditioning before passing to the model.
+# Supports both pretrained model names and custom checkpoint paths.
+
 import os
 import argparse
 import numpy as np

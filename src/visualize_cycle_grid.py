@@ -1,3 +1,6 @@
+# Generates a 2x3 cycle-consistency visualization grid for a trained CycleGAN_Turbo model.
+# Each row shows the original image, its translation, and the reconstructed cycle-back image.
+# Useful for qualitatively evaluating cycle-consistency and translation quality.
 """
 Generates a 2x3 cycle-consistency grid for each paired image in the test set.
 

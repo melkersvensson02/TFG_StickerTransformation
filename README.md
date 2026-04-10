@@ -1,228 +1,193 @@
-# img2img-turbo
+# Domain Specific Img2Img Transformation
+**Bachelor's Thesis — Melker Fredrik Svensson**
+Supervisors: Pablo Arias, Gloria Haro · UPF Computer Engineering, 2025–2026
 
-[**Paper**](https://arxiv.org/abs/2403.12036) | [**Sketch2Image Demo**](https://huggingface.co/spaces/gparmar/img2img-turbo-sketch) 
-#### **Quick start:** [**Running Locally**](#getting-started) | [**Gradio (locally hosted)**](#gradio-demo) | [**Training**](#training-with-your-own-data)
+---
 
-### Cat Sketching
-<p align="left" >
-<img src="https://raw.githubusercontent.com/GaParmar/img2img-turbo/main/assets/cat_2x.gif" width="800" />
-</p>
+## Overview
 
-### Fish Sketching
-<p align="left">
-<img src="https://raw.githubusercontent.com/GaParmar/img2img-turbo/main/assets/fish_2x.gif"  width="800" />
-</p>
+This project fine-tunes **SD-Turbo** for a domain-specific image-to-image translation task: given an RGB photograph, generate a **binary sticker representation** of the main subjects (outline-style, no background). Training is studied in both **paired** (Pix2Pix-Turbo) and **unpaired** (CycleGAN-Turbo) settings, using **LoRA** adapters on the UNet and VAE.
 
+The paired setup proved insufficient — pixel-level losses could not overcome the spatial displacement and hallucinations present in the generated dataset. The unpaired cycle-consistency framework significantly outperformed it. The best results were obtained by first training CycleGAN-Turbo on a segmented unpaired dataset, then fine-tuning with paired pix2pix losses.
 
-We propose a general method for adapting a single-step diffusion model, such as SD-Turbo, to new tasks and domains through adversarial learning. This enables us to leverage the internal knowledge of pre-trained diffusion models while achieving efficient inference (e.g., for 512x512 images, 0.29 seconds on A6000 and 0.11 seconds on A100). 
+Key contributions:
+- A novel paired/unpaired sticker dataset generated via Gemini 2.5 Flash + Grounded SAM 2
+- Architecture modifications: controllable skip-connection weight (`alpha_skip`)
+- Custom loss functions: **Masked L2** (upweights black-pixel errors) and **Contextual Loss** (spatially invariant feature matching)
+- Extensive ablation studies across both training settings
 
-Our one-step conditional models **CycleGAN-Turbo** and **pix2pix-turbo** can perform various image-to-image translation tasks for both unpaired and paired settings. CycleGAN-Turbo outperforms existing GAN-based and diffusion-based methods, while pix2pix-turbo is on par with recent works such as ControlNet for Sketch2Photo and Edge2Image, but with one-step inference. 
+---
 
-[One-Step Image Translation with Text-to-Image Models](https://arxiv.org/abs/2403.12036)<br>
-[Gaurav Parmar](https://gauravparmar.com/), [Taesung Park](https://taesung.me/), [Srinivasa Narasimhan](https://www.cs.cmu.edu/~srinivas/), [Jun-Yan Zhu](https://github.com/junyanz/)<br>
-CMU and Adobe, arXiv 2403.12036
+## Project Structure
 
-<br>
-<div>
-<p align="center">
-<img src='assets/teaser_results.jpg' align="center" width=1000px>
-</p>
-</div>
+```
+src/
+  cyclegan_turbo.py               # CycleGAN_Turbo model definition
+  cyclegan_train_turbo.py         # CycleGAN unpaired training script
+  pix2pix_turbo.py                # Pix2Pix_Turbo model definition
+  train_pix2pix_turbo.py          # Pix2Pix paired training script
+  pix2pix_turbo_from_cyclegan.py  # Pix2Pix model initialized from CycleGAN checkpoint
+  train_pix2pix_turbo_from_cyclegan.py  # Fine-tune CycleGAN with pix2pix losses
+  inference_unpaired.py           # CycleGAN inference (single image)
+  inference_paired.py             # Pix2Pix inference (single image, Canny-guided)
+  compare_all_models.py           # Side-by-side grid comparison of all model types
+  compare_pix2pix_models.py       # Side-by-side grid comparison of pix2pix checkpoints
+  visualize_cycle_grid.py         # 2x3 cycle-consistency grid visualization
+  cycle_test.py                   # Evaluate CycleGAN on a test set
+  model.py                        # Shared utilities (scheduler, VAE helpers)
+jobs/                             # SLURM job scripts for HPC training
+checkpoints/                      # Saved model checkpoints
+dataset/                          # Paired and unpaired training data
+```
 
+---
 
+## Setup
 
+### 1. Create the conda environment
 
-## Results
+```bash
+conda env create -f Pined.yaml
+conda activate Pined-img2img-turbo-fixed
+```
 
-### Paired Translation with pix2pix-turbo
-**Edge to Image**
-<div>
-<p align="center">
-<img src='assets/edge_to_image_results.jpg' align="center" width=800px>
-</p>
-</div>
+### 2. Additional dependencies (install manually if needed)
 
-<!-- **Sketch to Image**
-TODO -->
-### Generating Diverse Outputs
-By varying the input noise map, our method can generate diverse outputs from the same input conditioning.
-The output style can be controlled by changing the text prompt.
-<div> <p align="center">
-<img src='assets/gen_variations.jpg' align="center" width=800px>
-</p> </div>
+```bash
+pip install clip-by-openai accelerate vision-aided-loss wandb
+```
 
-### Unpaired Translation with CycleGAN-Turbo
+### 3. Weights
 
-**Day to Night**
-<div> <p align="center">
-<img src='assets/day2night_results.jpg' align="center" width=800px>
-</p> </div>
+Pre-trained SD-Turbo weights are loaded from HuggingFace automatically. Custom checkpoints are stored in `checkpoints/` and `ckpt_folder/`.
+Go to https://huggingface.co/stabilityai/sd-turbo/tree/main to get the weights for SD-Turbo!
 
-**Night to Day**
-<div><p align="center">
-<img src='assets/night2day_results.jpg' align="center" width=800px>
-</p> </div>
+---
 
-**Clear to Rainy**
-<div>
-<p align="center">
-<img src='assets/clear2rainy_results.jpg' align="center" width=800px>
-</p>
-</div>
+## Training
 
-**Rainy to Clear**
-<div>
-<p align="center">
-<img src='assets/rainy2clear.jpg' align="center" width=800px>
-</p>
-</div>
-<hr>
+### Unpaired — CycleGAN-Turbo
 
+```bash
+accelerate launch src/cyclegan_train_turbo.py \
+  --dataset_folder /path/to/unpaired_dataset \
+  --prompt_a "a photo of a subject" \
+  --prompt_b "a sticker of a subject" \
+  --output_dir ./outputs/cyclegan_run \
+  --max_train_steps 6000 \
+  --train_batch_size 1
+```
 
-## Method
-**Our Generator Architecture:**
-We tightly integrate three separate modules in the original latent diffusion models into a single end-to-end network with small trainable weights. This architecture allows us to translate the input image x to the output y, while retaining the input scene structure. We use LoRA adapters in each module, introduce skip connections and Zero-Convs between input and output, and retrain the first layer of the U-Net. Blue boxes indicate trainable layers. Semi-transparent layers are frozen. The same generator can be used for various GAN objectives.
-<div>
-<p align="center">
-<img src='assets/method.jpg' align="center" width=900px>
-</p>
-</div>
+The dataset folder must contain `train_A/` and `train_B/` subdirectories. For the sticker task, `train_A` should contain segmented RGB images and `train_B` sticker images.
 
+---
 
-## Getting Started
-**Environment Setup**
-- We provide a [conda env file](environment.yaml) that contains all the required dependencies.
-    ```
-    conda env create -f environment.yaml
-    ```
-- Following this, you can activate the conda environment with the command below. 
-  ```
-  conda activate img2img-turbo
-  ```
-- Or use virtual environment:
-  ```
-  python3 -m venv venv
-  source venv/bin/activate
-  pip install -r requirements.txt
-  ```
-**Paired Image Translation (pix2pix-turbo)**
-- The following command takes an image file and a prompt as inputs, extracts the canny edges, and saves the results in the directory specified.
-    ```bash
-    python src/inference_paired.py --model_name "edge_to_image" \
-        --input_image "assets/examples/bird.png" \
-        --prompt "a blue bird" \
-        --output_dir "outputs"
-    ```
-    <table>
-    <th>Input Image</th>
-    <th>Canny Edges</th>
-    <th>Model Output</th>
-    </tr>
-    <tr>
-    <td><img src='assets/examples/bird.png' width="200px"></td>
-    <td><img src='assets/examples/bird_canny.png' width="200px"></td>
-    <td><img src='assets/examples/bird_canny_blue.png' width="200px"></td>
-    </tr>
-    </table>
-    <br>
+### Paired fine-tuning from a CycleGAN checkpoint
 
-- The following command takes a sketch and a prompt as inputs, and saves the results in the directory specified.
-    ```bash
-    python src/inference_paired.py --model_name "sketch_to_image_stochastic" \
-    --input_image "assets/examples/sketch_input.png" --gamma 0.4 \
-    --prompt "ethereal fantasy concept art of an asteroid. magnificent, celestial, ethereal, painterly, epic, majestic, magical, fantasy art, cover art, dreamy" \
-    --output_dir "outputs"
-    ```
-    <table>
-    <th>Input</th>
-    <th>Model Output</th>
-    </tr>
-    <tr>
-    <td><img src='assets/examples/sketch_input.png' width="400px"></td>
-    <td><img src='assets/examples/sketch_output.png' width="400px"></td>
-    </tr>
-    </table>
-    <br>
+```bash
+accelerate launch src/train_pix2pix_turbo_from_cyclegan.py \
+  --pretrained_model_path /path/to/cyclegan_checkpoint.pkl \
+  --dataset_folder /path/to/paired_dataset \
+  --output_dir ./outputs/finetuned_run \
+  --max_train_steps 5001 \
+  --lambda_lpips 5.0 --lambda_l2 1.0 --lambda_clipsim 5.0 --lambda_gan 0.5
+```
 
-**Unpaired Image Translation (CycleGAN-Turbo)**
-- The following command takes a **day** image file as input, and saves the output **night** in the directory specified.
-    ```
-    python src/inference_unpaired.py --model_name "day_to_night" \
-        --input_image "assets/examples/day2night_input.png" --output_dir "outputs"
-    ```
-    <table>
-    <th>Input (day)</th>
-    <th>Model Output (night)</th>
-    </tr>
-    <tr>
-    <td><img src='assets/examples/day2night_input.png' width="400px"></td>
-    <td><img src='assets/examples/day2night_output.png' width="400px"></td>
-    </tr>
-    </table>
+---
 
-- The following command takes a **night** image file as input, and saves the output **day** in the directory specified.
-    ```
-    python src/inference_unpaired.py --model_name "night_to_day" \
-        --input_image "assets/examples/night2day_input.png" --output_dir "outputs"
-    ```
-    <table>
-    <th>Input (night)</th>
-    <th>Model Output (day)</th>
-    </tr>
-    <tr>
-    <td><img src='assets/examples/night2day_input.png' width="400px"></td>
-    <td><img src='assets/examples/night2day_output.png' width="400px"></td>
-    </tr>
-    </table>
+### Paired — Pix2Pix-Turbo (from scratch)
 
-- The following command takes a **clear** image file as input, and saves the output **rainy** in the directory specified.
-    ```
-    python src/inference_unpaired.py --model_name "clear_to_rainy" \
-        --input_image "assets/examples/clear2rainy_input.png" --output_dir "outputs"
-    ```
-    <table>
-    <th>Input (clear)</th>
-    <th>Model Output (rainy)</th>
-    </tr>
-    <tr>
-    <td><img src='assets/examples/clear2rainy_input.png' width="400px"></td>
-    <td><img src='assets/examples/clear2rainy_output.png' width="400px"></td>
-    </tr>
-    </table>
+```bash
+accelerate launch src/train_pix2pix_turbo.py \
+  --dataset_folder /path/to/paired_dataset \
+  --output_dir ./outputs/pix2pix_run \
+  --max_train_steps 3000
+```
 
-- The following command takes a **rainy** image file as input, and saves the output **clear** in the directory specified.
-    ```
-    python src/inference_unpaired.py --model_name "rainy_to_clear" \
-        --input_image "assets/examples/rainy2clear_input.png" --output_dir "outputs"
-    ```
-    <table>
-    <th>Input (rainy)</th>
-    <th>Model Output (clear)</th>
-    </tr>
-    <tr>
-    <td><img src='assets/examples/rainy2clear_input.png' width="400px"></td>
-    <td><img src='assets/examples/rainy2clear_output.png' width="400px"></td>
-    </tr>
-    </table>
+---
 
+## Inference
 
+### CycleGAN (unpaired model)
 
-## Gradio Demo
-- We provide a Gradio demo for the paired image translation tasks.
-- The following command will launch the sketch to image locally using gradio.
-    ```
-    gradio gradio_sketch2image.py
-    ```
-- The following command will launch the canny edge to image gradio demo locally.
-   ```
-    gradio gradio_canny2image.py
-   ```
+```bash
+python src/inference_unpaired.py \
+  --input_image /path/to/image.jpg \
+  --model_path /path/to/checkpoint.pkl \
+  --prompt "a sticker of a dog" \
+  --direction a2b \
+  --output_dir ./output
+```
 
+### Pix2Pix
 
-## Training with your own data
-- See the steps [here](docs/training_pix2pix_turbo.md) for training a pix2pix-turbo model on your paired data.
-- See the steps [here](docs/training_cyclegan_turbo.md) for training a CycleGAN-Turbo model on your unpaired data.
+```bash
+python src/inference_paired.py \
+  --input_image /path/to/image.jpg \
+  --model_path /path/to/checkpoint.pkl \
+  --prompt "a sticker of a dog"
+```
 
+---
 
-## Acknowledgment
-Our work uses the Stable Diffusion-Turbo as the base model with the following [LICENSE](https://huggingface.co/stabilityai/sd-turbo/blob/main/LICENSE).
+## Evaluation & Visualization
+
+```bash
+# Cycle-consistency grid (2x3)
+python src/visualize_cycle_grid.py \
+  --model_path /path/to/checkpoint.pkl \
+  --dataset_folder /path/to/test_data \
+  --output_dir ./cycle_grids
+
+# Compare all model types side-by-side
+python src/compare_all_models.py \
+  --data_dir /path/to/test_data \
+  --config compare_models_dirs/models_config_5001.json \
+  --output_dir ./comparison_output
+```
+
+---
+
+## Dependencies (`Pined.yaml`)
+
+```yaml
+name: Pined-img2img-turbo-fixed
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch=2.3.1
+  - torchvision=0.18.1
+  - torchaudio=2.3.1
+  - pytorch-cuda=12.1
+  - pip:
+      - diffusers==0.25.1
+      - peft==0.7.1
+      - transformers==4.35.2
+      - accelerate
+      - lpips==0.1.4
+      - clean-fid==0.1.35
+      - open-clip-torch==2.20.0
+      - opencv-python==4.6.0.66
+      - pillow==9.5.0
+      - scipy==1.11.1
+      - timm==0.9.2
+      - tqdm==4.65.0
+      - huggingface-hub==0.20.3
+      - gradio==3.43.1
+      - dominate==2.9.1
+      - numpy==1.24.4
+```
+
+Full pinned spec: [`Pined.yaml`](Pined.yaml)
+
+---
+
+## Reference
+
+This work is based on:
+> Parmar et al., *One-Step Image Translation with Text-to-Image Models*, CVPR 2024.
+> [[img2img-turbo](https://github.com/GaParmar/img2img-turbo)]

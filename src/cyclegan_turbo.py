@@ -1,3 +1,7 @@
+# Defines the CycleGAN_Turbo model for unpaired image-to-image translation using SD-Turbo.
+# Contains VAE encode/decode wrappers, UNet/VAE initialization helpers, and the main model class.
+# Uses separate LoRA adapters for encoder, decoder, and other UNet layers per translation direction.
+
 import os
 import sys
 import copy

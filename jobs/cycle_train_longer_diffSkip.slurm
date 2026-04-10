@@ -29,7 +29,7 @@ nvidia-smi
 # ----------------------------------------------------------
 
 echo "Checking if Python file exists:"
-ls -l src/Train_pix2pix_turbo.py
+ls -l src/train_pix2pix_turbo.py
 
 
 echo "We are about to run the python code!"
@@ -51,7 +51,7 @@ for SKIP_WEIGHT in 0.0 0.5 1.0; do
 
     echo "Running with SKIP_WEIGHT=${SKIP_WEIGHT}, output to ${CURRENT_OUTDIR}"
 
-    accelerate launch src/Cyclegan_Train_turbo.py \
+    accelerate launch src/cyclegan_train_turbo.py \
         --pretrained_model_name_or_path "${BASE_MODEL}" \
         --output_dir "${CURRENT_OUTDIR}" \
         --dataset_folder "${DATASET}" \

@@ -1,3 +1,7 @@
+# Modified Pix2Pix_Turbo model that supports loading UNet weights from AutoPipelineForText2Image.
+# Adds an --load_unet_default option to initialize UNet from base SD-Turbo instead of a checkpoint.
+# Otherwise functionally identical to pix2pix_turbo.py.
+
 import os
 import requests
 import sys

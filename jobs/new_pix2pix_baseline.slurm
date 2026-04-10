@@ -27,7 +27,7 @@ OUTDIR="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/new_pix2pix_baseline
 # same paired data, same steps, same hyperparams; only difference is the starting
 # checkpoint (SD-Turbo base vs a CycleGAN-pretrained model).
 
-accelerate launch src/Train_pix2pix_turbo.py \
+accelerate launch src/train_pix2pix_turbo.py \
     --pretrained_model_name_or_path "/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo" \
     --output_dir "${OUTDIR}" \
     --dataset_folder="${DATASET}" \

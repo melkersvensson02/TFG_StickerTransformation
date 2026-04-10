@@ -29,7 +29,7 @@ echo "Number of GPUs available to job: $NUM_GPUS"
 # ----------------------------------------------------------
 
 echo "Checking if Python file exists:"
-ls -l src/Cyclegan_Train_turbo.py
+ls -l src/cyclegan_train_turbo.py
 
 echo "Starting training with skip connections enabled (weight = 1.0)"
 export NCCL_P2P_DISABLE=1

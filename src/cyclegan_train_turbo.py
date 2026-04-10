@@ -1,3 +1,7 @@
+# Training script for CycleGAN_Turbo on unpaired image data using SD-Turbo as backbone.
+# Supports multiple configurable losses: GAN, cycle, LPIPS, DINO structure, and gradient difference.
+# Logs metrics to wandb and saves periodic checkpoints for both A→B and B→A directions.
+
 import os
 import gc
 import copy
@@ -342,7 +346,7 @@ def main(args):
     )
     
     # CRITICAL: Move models to weight_dtype AFTER accelerator.prepare()
-    # This matches pix2pix approach (Train_pix2pix_turbo.py lines 286-289)
+    # This matches pix2pix approach (train_pix2pix_turbo.py lines 286-289)
     # We MUST convert models to target dtype for xformers compatibility with Q/K/V
     unet.to(dtype=weight_dtype)
     vae_enc.to(dtype=weight_dtype)

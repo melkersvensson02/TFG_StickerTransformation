@@ -26,7 +26,7 @@ OUTDIR="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/new_cx_only"
 #   lambda_cx          = 10  (CX carries the same total weight LPIPS had)
 # VGG is shared with net_lpips (no extra GPU memory despite lambda_cx > 0)
 
-accelerate launch src/Cyclegan_Train_turbo.py \
+accelerate launch src/cyclegan_train_turbo.py \
     --pretrained_model_name_or_path "${BASE_MODEL}" \
     --output_dir "${OUTDIR}" \
     --dataset_folder "${DATASET}" \

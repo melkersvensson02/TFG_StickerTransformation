@@ -37,7 +37,7 @@ BS=2
 MAX_STEPS=4000
 
 echo "Checking if Python file exists:"
-ls -l src/Cyclegan_Train_turbo.py
+ls -l src/cyclegan_train_turbo.py
 
 echo "Starting training with skip connections enabled (weight = 1.0)"
 
@@ -45,7 +45,7 @@ echo "Starting training with skip connections enabled (weight = 1.0)"
 # Run training
 # ----------------------------------------------------------
 
-accelerate launch src/Cyclegan_Train_turbo.py \
+accelerate launch src/cyclegan_train_turbo.py \
     --pretrained_model_name_or_path "${BASE_MODEL}" \
     --output_dir "${OUTDIR}" \
     --dataset_folder "${DATASET}" \

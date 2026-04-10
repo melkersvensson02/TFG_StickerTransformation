@@ -29,7 +29,7 @@ nvidia-smi
 # ----------------------------------------------------------
 
 echo "Checking if Python file exists:"
-s -l src/Train_pix2pix_turbo.py
+s -l src/train_pix2pix_turbo.py
 
 
 echo "We are about to run the python code!"
@@ -59,7 +59,7 @@ ROOT_OUT="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/CLIP_ablation/"
 OUTNAME="myPairedDatasetSemantic_baseline_noskip_nocanny"
 OUTDIR="${ROOT_OUT}/${OUTNAME}"
 
-accelerate launch src/Train_pix2pix_turbo.py \
+accelerate launch src/train_pix2pix_turbo.py \
   --pretrained_model_name_or_path="${BASE_MODEL}" \
   --output_dir="${OUTDIR}" \
   --dataset_folder="${DATASET}" \
@@ -85,7 +85,7 @@ for SKIP in 0.5 1.0; do
   OUTNAME="myPairedDatasetSemantic_baseline_skip${SKIP}_canny"
   OUTDIR="${ROOT_OUT}/${OUTNAME}"
 
-  accelerate launch src/Train_pix2pix_turbo.py \
+  accelerate launch src/train_pix2pix_turbo.py \
     --pretrained_model_name_or_path="${BASE_MODEL}" \
     --output_dir="${OUTDIR}" \
     --dataset_folder="${DATASET}" \
@@ -138,7 +138,7 @@ for CLIPW in 1.0 0.5 3.0; do
       SKIP_ARGS=""
     fi
 
-    accelerate launch src/Train_pix2pix_turbo.py \
+    accelerate launch src/train_pix2pix_turbo.py \
       --pretrained_model_name_or_path="${BASE_MODEL}" \
       --output_dir="${OUTDIR}" \
       --dataset_folder="${DATASET}" \

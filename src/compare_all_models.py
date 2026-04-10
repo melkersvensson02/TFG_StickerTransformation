@@ -1,3 +1,7 @@
+# Compares multiple CycleGAN and pix2pix model checkpoints side-by-side on a test dataset.
+# Renders a grid image grouping models by type (reference, semantic, non-semantic) for visual evaluation.
+# Reads model configurations from a JSON file to flexibly compare arbitrary checkpoint collections.
+
 import os
 import sys
 import json
@@ -20,11 +24,11 @@ ROW_GAP   = 4    # gap between the two image rows (px)
 
 # ── image helpers ─────────────────────────────────────────────────────────────
 
-def load_and_resize(path: str, size: int) -> Image.Image:
+def load_and_resize(path: str, resolution: int) -> Image.Image:
     img = Image.open(path).convert("RGB")
     return transforms.Compose([
-        transforms.Resize(size, interpolation=transforms.InterpolationMode.LANCZOS),
-        transforms.CenterCrop(size),
+        transforms.Resize(resolution, interpolation=transforms.InterpolationMode.LANCZOS),
+        transforms.CenterCrop(resolution),
     ])(img)
 
 
@@ -183,8 +187,10 @@ def parse_args():
     ap.add_argument("--config", required=True,
                     help="JSON config with 'semantic' and 'nonsemantic' model lists")
     ap.add_argument("--output_dir", default="./AllModelsComparison")
-    ap.add_argument("--image_size", type=int, default=256,
-                    help="Square cell size in pixels (default: 256)")
+    ap.add_argument("--resolution", type=int, default=512,
+                    help="Resize all images to this size before inference (default: 512)")
+    ap.add_argument("--prompt", default=None,
+                    help="Override ALL prompts for every model (semantic and non-semantic alike)")
     ap.add_argument("--fixed_prompt", default=None,
                     help="Prompt for non-semantic models (falls back to fixed_prompt_b.txt)")
     ap.add_argument("--use_fp16", action="store_true",
@@ -210,18 +216,6 @@ def main():
     with open(prompts_file) as fh:
         prompts: dict = json.load(fh)
 
-    # Fixed prompt for non-semantic models
-    fixed_prompt = args.fixed_prompt
-    if fixed_prompt is None:
-        fp_path = os.path.join(args.data_dir, "fixed_prompt_b.txt")
-        if not os.path.isfile(fp_path):
-            raise FileNotFoundError(
-                "--fixed_prompt not given and fixed_prompt_b.txt not found in data_dir"
-            )
-        with open(fp_path) as fh:
-            fixed_prompt = fh.read().strip()
-        print(f"Fixed prompt (non-semantic): '{fixed_prompt}'")
-
     # Load model config
     with open(args.config) as fh:
         config = json.load(fh)
@@ -233,6 +227,25 @@ def main():
 
     if n_sem + n_nonsem + n_noft == 0:
         raise ValueError("No models found in config JSON.")
+
+    # --prompt overrides everything; otherwise fall back to per-group prompt sources
+    global_prompt = args.prompt
+    if global_prompt is not None:
+        fixed_prompt = global_prompt
+        print(f"Global prompt override: '{global_prompt}'")
+    else:
+        # Fixed prompt — only required when non-semantic or no-fine-tune models are present
+        fixed_prompt = args.fixed_prompt
+        if fixed_prompt is None and (n_nonsem > 0 or n_noft > 0):
+            fp_path = os.path.join(args.data_dir, "fixed_prompt_b.txt")
+            if not os.path.isfile(fp_path):
+                raise FileNotFoundError(
+                    "--fixed_prompt not given and fixed_prompt_b.txt not found in data_dir "
+                    "(required for non-semantic / no-fine-tune models)"
+                )
+            with open(fp_path) as fh:
+                fixed_prompt = fh.read().strip()
+            print(f"Fixed prompt (non-semantic): '{fixed_prompt}'")
 
     print(f"Loading {n_sem} semantic + {n_nonsem} non-semantic + {n_noft} no-fine-tune models …")
     sem_models    = [(c["name"], load_finetuned(c["path"],      args.use_fp16)) for c in sem_cfgs]
@@ -246,8 +259,8 @@ def main():
     if not image_names:
         raise RuntimeError(f"No images found in {dir_orig}")
 
-    # Scale font with cell size so labels stay legible
-    font_size = max(10, args.image_size // 18)
+    # Scale font with resolution so labels stay legible
+    font_size = max(10, args.resolution // 18)
 
     # Label bar colours (bg, fg) per column group
     REF_LBG   = (30, 30, 30)
@@ -264,6 +277,7 @@ def main():
     ]
     GROUP_SIZES = [1, n_sem, n_nonsem, n_noft]
 
+    print(f"Preprocessing: resize to {args.resolution}px (LANCZOS)")
     print(f"{len(image_names)} images — running inference …")
 
     for fname in image_names:
@@ -275,15 +289,18 @@ def main():
             print(f"  [SKIP] no masked image for {fname}")
             continue
 
-        prompt = prompts.get(fname) or prompts.get(stem)
-        if prompt is None:
-            print(f"  [SKIP] no prompt found for {fname}")
-            continue
+        if global_prompt is not None:
+            prompt = global_prompt
+        else:
+            prompt = prompts.get(fname) or prompts.get(stem)
+            if prompt is None:
+                print(f"  [SKIP] no prompt found for {fname}")
+                continue
 
         print(f"  {fname}")
 
-        img_orig   = load_and_resize(path_orig,   args.image_size)
-        img_masked = load_and_resize(path_masked, args.image_size)
+        img_orig   = load_and_resize(path_orig,   args.resolution)
+        img_masked = load_and_resize(path_masked, args.resolution)
 
         # ── inference ─────────────────────────────────────────────────────────
         sem_out_masked  = [(n, run_finetuned(m, img_masked, prompt))       for n, m in sem_models]
@@ -319,15 +336,17 @@ def main():
         body.paste(row1, (0, 0))
         body.paste(row2, (0, row1.height + ROW_GAP))
 
-        # ── group header bar ──────────────────────────────────────────────────
-        header = build_group_header(row1.width, xs, col_widths,
-                                    GROUP_SIZES, GROUP_SPECS, font_size + 2)
-
-        # ── combine ───────────────────────────────────────────────────────────
-        final_h = header.height + ROW_GAP + body.height
-        final   = Image.new("RGB", (row1.width, final_h), (60, 60, 60))
-        final.paste(header, (0, 0))
-        final.paste(body,   (0, header.height + ROW_GAP))
+        # ── group header bar (only when more than one model group is present) ──
+        n_active_groups = sum(1 for s in GROUP_SIZES[1:] if s > 0)
+        if n_active_groups > 1:
+            header = build_group_header(row1.width, xs, col_widths,
+                                        GROUP_SIZES, GROUP_SPECS, font_size + 2)
+            final_h = header.height + ROW_GAP + body.height
+            final   = Image.new("RGB", (row1.width, final_h), (60, 60, 60))
+            final.paste(header, (0, 0))
+            final.paste(body,   (0, header.height + ROW_GAP))
+        else:
+            final = body
 
         out_path = os.path.join(args.output_dir, f"{stem}_ablation.png")
         final.save(out_path)
@@ -340,4 +359,14 @@ if __name__ == "__main__":
     main()
 
 
-# python compare_all_models.py --data_dir /data/upftfg19/mfsvensson/Data_TFG/dataToCompare --config   ../models_config.json --output_dir ../AllModelsComparisonAndNoFinedTuned
+"""
+First we do finetunings:
+
+python compare_all_models.py --data_dir /data/upftfg19/mfsvensson/Data_TFG/dataToComparePaired --config ../compare_models_dirs/models_config_1001.json --output_dir ../FineTuning_1001
+python compare_all_models.py --data_dir /data/upftfg19/mfsvensson/Data_TFG/dataToComparePaired --config ../compare_models_dirs/models_config_3001.json --output_dir ../FineTuning_3001
+python compare_all_models.py --data_dir /data/upftfg19/mfsvensson/Data_TFG/dataToComparePaired --config ../compare_models_dirs/models_config_5001.json --output_dir ../FineTuning_5001
+
+Normal CycleGAN (no fine-tuning) for reference:
+
+python compare_all_models.py --data_dir /data/upftfg19/mfsvensson/Data_TFG/dataToCompareUnpaired --config ../compare_models_dirs/cycle_test.json --output_dir ../CycleGan_Test --prompt "Generate a detailed, realistic, highly textured, and full-color illustration imgae."
+"""

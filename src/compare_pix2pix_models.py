@@ -1,3 +1,7 @@
+# Compares multiple Pix2Pix_Turbo checkpoints side-by-side on a test dataset.
+# Renders a labeled grid image for visual evaluation of different training runs.
+# Reads model configurations from a JSON file to compare arbitrary checkpoint collections.
+
 import os
 import sys
 import json
@@ -19,11 +23,11 @@ ROW_GAP   = 4    # gap between the two image rows (px)
 
 # ── image helpers ─────────────────────────────────────────────────────────────
 
-def load_and_resize(path: str, size: int) -> Image.Image:
+def load_and_resize(path: str, resolution: int) -> Image.Image:
     img = Image.open(path).convert("RGB")
     return transforms.Compose([
-        transforms.Resize(size, interpolation=transforms.InterpolationMode.LANCZOS),
-        transforms.CenterCrop(size),
+        transforms.Resize(resolution, interpolation=transforms.InterpolationMode.LANCZOS),
+        transforms.CenterCrop(resolution),
     ])(img)
 
 
@@ -158,8 +162,8 @@ def parse_args():
     ap.add_argument("--config", required=True,
                     help="JSON config with 'semantic' and 'nonsemantic' model lists")
     ap.add_argument("--output_dir", default="./AllModelsComparisonPix2Pix")
-    ap.add_argument("--image_size", type=int, default=256,
-                    help="Square cell size in pixels (default: 256)")
+    ap.add_argument("--resolution", type=int, default=512,
+                    help="Resize all images to this size before inference (default: 512)")
     ap.add_argument("--fixed_prompt", default=None,
                     help="Prompt for non-semantic models (falls back to fixed_prompt_b.txt)")
     ap.add_argument("--use_fp16", action="store_true",
@@ -219,7 +223,7 @@ def main():
     if not image_names:
         raise RuntimeError(f"No images found in {dir_orig}")
 
-    font_size = max(10, args.image_size // 18)
+    font_size = max(10, args.resolution // 18)
 
     REF_LBG  = (30, 30, 30)
     SEM_LBG  = (28, 45, 75)    # blue tint  — semantic
@@ -250,8 +254,8 @@ def main():
 
         print(f"  {fname}")
 
-        img_orig   = load_and_resize(path_orig,   args.image_size)
-        img_masked = load_and_resize(path_masked, args.image_size)
+        img_orig   = load_and_resize(path_orig,   args.resolution)
+        img_masked = load_and_resize(path_masked, args.resolution)
 
         # ── inference ─────────────────────────────────────────────────────────
         sem_out_masked  = [(n, run_model(m, img_masked, prompt))       for n, m in sem_models]
@@ -300,5 +304,9 @@ def main():
 if __name__ == "__main__":
     main()
 
+"""
+Semantic vs Non-Semantic:
 
-# python compare_pix2pix_models.py --data_dir /data/upftfg19/mfsvensson/Data_TFG/dataToCompare --config ../models_config_pix2pix.json --output_dir ../AllModelsComparisonPix2Pix
+python compare_pix2pix_models.py --data_dir /data/upftfg19/mfsvensson/Data_TFG/dataToComparePaired --config ../compare_models_dirs/ML2_paired.json --output_dir ../ML2_paired_comparison
+python compare_pix2pix_models.py --data_dir /data/upftfg19/mfsvensson/Data_TFG/dataToComparePaired --config ../compare_models_dirs/NL2_paired.json --output_dir ../NL2_paired_comparison
+"""

@@ -29,7 +29,7 @@ nvidia-smi
 # ----------------------------------------------------------
 
 echo "Checking if Python file exists:"
-s -l src/Train_pix2pix_turbo.py
+s -l src/train_pix2pix_turbo.py
 
 
 echo "We are about to run the python code!"
@@ -59,7 +59,7 @@ ROOT_OUT="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/"
 OUTNAME="naked_UNET"
 OUTDIR="${ROOT_OUT}/${OUTNAME}"
 
-accelerate launch src/Train_pix2pix_turbo.py \
+accelerate launch src/train_pix2pix_turbo.py \
   --pretrained_model_name_or_path="${BASE_MODEL}" \
   --output_dir="${OUTDIR}" \
   --dataset_folder="${DATASET}" \

@@ -1,0 +1,8 @@
+Generate a detailed, full-color illustration of the main subjects.
+Style: rich, realistic, and highly textured, emphasizing depth, shading, and intricate interior details.
+Use fine, delicate lines and smooth gradients throughout. Include complex lighting, shadows, and nuanced color transitions.
+Place the subjects within a fully rendered background that enhances the scene.
+Make facial features expressive and detailed.
+Encourage soft edges, layered textures, and atmospheric effects.
+Avoid: thick contour lines, flat appearance, minimalist or tattoo-style designs, blank backgrounds, binary black-and-white output, or vinyl-cut suitability.
+Include full framing or borders if they support the composition.

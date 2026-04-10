@@ -1,3 +1,7 @@
+# Defines the Pix2Pix_Turbo model for paired image-to-image translation using SD-Turbo.
+# Uses LoRA adapters on the UNet and VAE, with a TwinConv interpolation mechanism.
+# Supports loading pretrained HuggingFace models or custom checkpoint paths.
+
 import os
 import requests
 import sys

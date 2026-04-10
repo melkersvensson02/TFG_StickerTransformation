@@ -29,7 +29,7 @@ nvidia-smi
 # ----------------------------------------------------------
 
 echo "Checking if Python file exists:"
-ls -l src/Train_pix2pix_turbo.py
+ls -l src/train_pix2pix_turbo.py
 
 
 echo "We are about to run the python code!"
@@ -49,7 +49,7 @@ MAX_STEPS=11000 # five times more the original 1102
 SKIP_ARGS="--ignore_skip False --skip_weight 0.5"
 COND_ARGS="--use_canny_conditioning True --canny_low_threshold ${CANNY_LOW} --canny_high_threshold ${CANNY_HIGH}"
 
-accelerate launch src/Train_pix2pix_turbo.py \
+accelerate launch src/train_pix2pix_turbo.py \
     --pretrained_model_name_or_path="${BASE_MODEL}" \
     --output_dir="${OUTDIR}" \
     --dataset_folder="${DATASET}" \

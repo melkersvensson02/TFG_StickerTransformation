@@ -1,3 +1,7 @@
+# Modified version of inference_paired using the pix2pix_turbo_modified model.
+# Adds --load_unet_default flag to optionally load the UNet from the base SD-Turbo weights.
+# Otherwise identical to inference_paired.py in usage and behavior.
+
 import os
 import argparse
 import numpy as np

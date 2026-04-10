@@ -1,3 +1,6 @@
+# Pix2Pix_Turbo model variant that initializes from a CycleGAN_Turbo checkpoint.
+# Enables paired fine-tuning on top of an already trained unpaired CycleGAN model.
+# Saves checkpoints in CycleGAN-compatible format to reuse the existing inference pipeline.
 """
 Pix2Pix_Turbo model that loads weights from a trained CycleGAN_Turbo checkpoint.
 KEY DIFFERENCES from pix2pix_turbo.py:

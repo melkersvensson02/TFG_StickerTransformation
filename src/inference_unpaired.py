@@ -1,3 +1,7 @@
+# Runs inference on a single image using a trained CycleGAN_Turbo model.
+# Supports both pretrained model names and custom checkpoint paths.
+# Outputs the translated image to the specified output directory.
+
 import os
 import argparse
 from PIL import Image

@@ -27,7 +27,7 @@ OUTDIR="/home/mfsvensson/TFG_reps/Old-img2img-turbo/outputs/new_cx_lpips_avg"
 # Each contributes ~50% of the perceptual reconstruction signal.
 # VGG is shared between CX and LPIPS (no extra GPU memory).
 
-accelerate launch src/Cyclegan_Train_turbo.py \
+accelerate launch src/cyclegan_train_turbo.py \
     --pretrained_model_name_or_path "${BASE_MODEL}" \
     --output_dir "${OUTDIR}" \
     --dataset_folder "${DATASET}" \

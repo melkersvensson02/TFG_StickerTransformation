@@ -29,12 +29,12 @@ nvidia-smi
 # ----------------------------------------------------------
 
 echo "Checking if Python file exists:"
-ls -l src/Cyclegan_Train_turbo.py
+ls -l src/cyclegan_train_turbo.py
 
 
 echo "We are about to run the python code!"
 export NCCL_P2P_DISABLE=1
-accelerate launch src/Cyclegan_Train_turbo.py \
+accelerate launch src/cyclegan_train_turbo.py \
     --pretrained_model_name_or_path="/data/upftfg19/mfsvensson/TFG_weights/img2img-turbo" \
     --output_dir="outputs/myZebraHorse_v2/" \
     --dataset_folder "/data/upftfg19/mfsvensson/Data_TFG/dataImg2ImgUnpairedFromRep/my_horse2zebra" \

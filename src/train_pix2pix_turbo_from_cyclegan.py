@@ -1,3 +1,6 @@
+# Fine-tunes a pretrained CycleGAN_Turbo checkpoint on paired data using pix2pix losses.
+# Combines L1, LPIPS, CLIP similarity, and GAN losses for supervised sticker-to-photo translation.
+# Checkpoints are saved in CycleGAN format for compatibility with existing inference scripts.
 """
 Training script for fine-tuning a CycleGAN model using pix2pix setup on paired data.
 

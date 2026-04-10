@@ -1,3 +1,7 @@
+# Evaluates a trained CycleGAN_Turbo model on paired test images (A and B domains).
+# Generates side-by-side comparisons of input and translated outputs for visual inspection.
+# Supports random or sequential sampling with configurable image count.
+
 import os
 import argparse
 import random

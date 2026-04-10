@@ -1,3 +1,7 @@
+# Shared model utilities used across pix2pix and CycleGAN training/inference scripts.
+# Provides a 1-step DDPM scheduler and custom forward methods for VAE encoder and decoder.
+# Also includes a helper to download model weights from a URL.
+
 import os
 import requests
 from tqdm import tqdm

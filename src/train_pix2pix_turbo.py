@@ -1,3 +1,7 @@
+# Training script for Pix2Pix_Turbo on paired image data (sticker-to-photo translation).
+# Optimizes with L1, LPIPS, CLIP similarity, and GAN losses using the Accelerate library.
+# Saves checkpoints periodically and logs metrics via wandb and FID evaluation.
+
 import os
 import gc
 import lpips
